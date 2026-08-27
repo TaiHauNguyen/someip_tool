@@ -178,11 +178,11 @@
     <AR-PACKAGE UUID="02e4cec7-d6d2-1718-265f-a897d19a9d82">
       <SHORT-NAME>PortInterfaces</SHORT-NAME>
       <ELEMENTS>
-        <SENDER-RECEIVER-INTERFACE UUID="c46131bc-ecdc-7aa1-577a-cc3c72142129">
-          <SHORT-NAME>SoIp_I_RMCUZALeft10msEvent</SHORT-NAME>
+        <SENDER-RECEIVER-INTERFACE UUID="3cfdfc5b-4e39-dae0-fe18-1735087e731c">
+          <SHORT-NAME>SoIp_I_C_RMCUZALeft10msEvent</SHORT-NAME>
           <IS-SERVICE>false</IS-SERVICE>
           <DATA-ELEMENTS>
-            <VARIABLE-DATA-PROTOTYPE UUID="1c06dd92-f185-250b-813a-0f9bfe14b5d3">
+            <VARIABLE-DATA-PROTOTYPE UUID="f62405f2-76b7-f1bf-86e3-b6de28a3fded">
               <SHORT-NAME>RMCUZALeft10msEvent</SHORT-NAME>
               <SW-DATA-DEF-PROPS>
                 <SW-DATA-DEF-PROPS-VARIANTS>

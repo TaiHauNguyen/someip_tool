@@ -386,8 +386,8 @@ class Project:
     platform_type_package: str = "/AUTOSAR_Platform/ImplementationDataTypes"
     local_endpoint_tag: str = ""   # short name used for NEP_<tag>; "" = first provider tag
     template: str = "someip.arxml.tpl"   # file in templates/, or an absolute path
-    port_iface_prefix_provider: str = "SoIp_I_Server_"
-    port_iface_prefix_consumer: str = "SoIp_I_"
+    port_iface_prefix_provider: str = "SoIp_I_P_"
+    port_iface_prefix_consumer: str = "SoIp_I_C_"
 
     services: List[Service] = field(default_factory=list)
 

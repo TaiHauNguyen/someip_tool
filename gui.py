@@ -448,6 +448,23 @@ class App(tk.Tk):
         self.refresh()
         self.status.set("Project settings applied.")
 
+    def _commit_forms(self) -> bool:
+        """Push what is typed in the tab forms into the model.
+
+        The Project and Services tabs are plain forms with an Apply button.
+        Without this, a value typed into a box but not applied - a port
+        interface prefix, a UDP port - is silently dropped by Generate, Save
+        and Check, and the file comes out with the old value.
+        """
+        for tab, form in (("Project", self.project_form), ("Services", self.service_form)):
+            try:
+                form.apply()
+            except ValueError as exc:
+                messagebox.showerror("Invalid value", "%s tab: %s" % (tab, exc))
+                self.nb.select(0 if tab == "Project" else 1)
+                return False
+        return True
+
     def _tab_services(self) -> None:
         tab = ttk.Frame(self.nb)
         self.nb.add(tab, text="Services")
@@ -704,6 +721,7 @@ class App(tk.Tk):
                                     values=("0x%X" % lit.value, lit.vt))
 
     def refresh_preview(self) -> None:
+        self._commit_forms()
         self.preview.delete("1.0", "end")
         try:
             self.preview.insert("1.0", arxml_gen.generate(self.prj, self.prj.template))
@@ -792,6 +810,8 @@ class App(tk.Tk):
         self.status.set("Loaded %s" % os.path.basename(path))
 
     def save_json(self, ask: bool = False) -> None:
+        if not self._commit_forms():
+            return
         path = self.path if (self.path and self.path.lower().endswith(".json") and not ask) else None
         if not path:
             path = filedialog.asksaveasfilename(
@@ -806,6 +826,8 @@ class App(tk.Tk):
         self.status.set("Saved %s" % path)
 
     def generate_arxml(self) -> None:
+        if not self._commit_forms():
+            return
         issues = validator.validate(self.prj)
         errors = [i for i in issues if i[0] == validator.ERROR]
         if errors:
@@ -830,6 +852,7 @@ class App(tk.Tk):
         messagebox.showinfo("Done", "ARXML written to:\n%s" % path)
 
     def run_validate(self) -> None:
+        self._commit_forms()
         self.chk_tree.delete(*self.chk_tree.get_children())
         issues = validator.validate(self.prj)
         for sev, where, msg in issues:
