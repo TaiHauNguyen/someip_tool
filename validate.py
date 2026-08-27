@@ -8,7 +8,7 @@ becoming a broken DaVinci import.
 
 from __future__ import annotations
 
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 from someip_model import Project, Service, base_type_name, parse_int
 
@@ -50,8 +50,46 @@ def validate(prj: Project) -> List[Tuple[str, str, str]]:
         else:
             ports[s.udp_port] = s.tag
 
+    out.extend(_validate_shared_type_names(prj))
+
     for s in prj.services:
         out.extend(_validate_service(prj, s))
+    return out
+
+
+def _type_shape(obj) -> tuple:
+    """What a data type actually declares, ignoring the description text."""
+    if hasattr(obj, "members"):
+        return ("struct", tuple((m.name, m.type) for m in obj.members))
+    if hasattr(obj, "literals"):
+        return ("enum", obj.base_type,
+                tuple((l.name, l.value, l.vt) for l in obj.literals))
+    return ("array", obj.element_type, obj.element, obj.size, obj.size_semantics)
+
+
+def _validate_shared_type_names(prj: Project) -> List[Tuple[str, str, str]]:
+    """Every service writes into the same /DataTypes package.
+
+    Two services may share a type, but only if they declare the same thing:
+    the generator emits the first one it meets, so a name that means two
+    different layouts silently gives one of them the wrong type.
+    """
+    out: List[Tuple[str, str, str]] = []
+    seen: Dict[str, Tuple[str, tuple]] = {}
+    for s in prj.services:
+        for obj in list(s.structs) + list(s.enums) + list(s.arrays):
+            if not obj.name:
+                continue
+            shape = _type_shape(obj)
+            first = seen.get(obj.name)
+            if first is None:
+                seen[obj.name] = (s.tag, shape)
+            elif first[1] != shape:
+                out.append((ERROR, "%s / %s" % (s.tag, obj.name),
+                            "'%s' is also declared differently by service '%s' - all "
+                            "services share one /DataTypes package, so the generated "
+                            "file can only carry one of the two."
+                            % (obj.name, first[0])))
     return out
 
 

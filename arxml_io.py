@@ -14,8 +14,9 @@ import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional, Tuple
 
 from someip_model import (
-    BASE_TYPES, ArrayType, EnumLiteral, EnumType, Endpoint, Event, EventGroup,
-    Project, SdTiming, Service, StructMember, StructType, parse_int,
+    BASE_TYPES, SOMEIP_HEADER_IN_PDU, ArrayType, EnumLiteral, EnumType,
+    Endpoint, Event, EventGroup, Project, SdTiming, Service, StructMember,
+    StructType, parse_int,
 )
 
 
@@ -470,7 +471,9 @@ class ArxmlReader:
                 index=len(svc.events) + 1,
                 name=ev_name,
                 event_id="0x%04X" % (hid & 0xFFFF),
-                payload_length=max(info["pdu_length"] - 8, 0),
+                # the ARXML stores payload + header, the model the payload
+                # alone - this is the inverse of Event.pdu_length()
+                payload_length=max(info["pdu_length"] - SOMEIP_HEADER_IN_PDU, 0),
                 serializer=struct_name,
                 transport="UDP",
                 event_group=svc.event_groups[0].name if svc.event_groups else "",
@@ -515,6 +518,16 @@ class ArxmlReader:
             for name in sorted(wanted_enums):
                 if svc.find_enum(name) is None:
                     svc.enums.append(enums[name])
+
+        # An enum that no member happens to reference is still part of the
+        # file, and the ECU code uses its <VT> constants.  Dropping it here
+        # would delete the COMPU-METHOD from the next generated file, so park
+        # the leftovers on the first service; validate.py reports them as
+        # unreferenced instead.
+        if services:
+            attached = {en.name for svc in services for en in svc.enums}
+            for name in sorted(set(enums) - attached):
+                services[0].enums.append(enums[name])
 
 
 def _event_groups(csi, start: int, ipv4: str, port: int, zone: str) -> List[EventGroup]:
