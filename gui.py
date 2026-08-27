@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import arxml_gen
 import arxml_io
+import theme
 import validate as validator
 from someip_model import (
     BASE_TYPES, ArrayType, EnumLiteral, EnumType, Event, EventGroup, Project,
@@ -65,7 +66,7 @@ class Form(ttk.Frame):
             opts = item[3] if len(item) > 3 else None
             col, row = divmod(i, per_col)
             if label.startswith("--"):
-                ttk.Label(self, text=label[2:], font=("Segoe UI", 9, "bold")).grid(
+                ttk.Label(self, text=label[2:], style="Section.TLabel").grid(
                     row=row, column=col * 2, columnspan=2, sticky="w", pady=(10, 2), padx=4)
                 continue
             ttk.Label(self, text=label).grid(row=row, column=col * 2, sticky="w", padx=(8, 4), pady=2)
@@ -114,6 +115,12 @@ class Form(ttk.Frame):
             set_path(self.target, path, value)
 
 
+
+def _row_tag(tree: ttk.Treeview) -> str:
+    """Alternating row colour: long tables are hard to read without one."""
+    return "odd" if len(tree.get_children("")) % 2 else "even"
+
+
 class FormDialog(tk.Toplevel):
     """Modal dialog built from the same field spec as Form.
 
@@ -136,7 +143,8 @@ class FormDialog(tk.Toplevel):
         body.rowconfigure(0, weight=1)
         body.columnconfigure(0, weight=1)
 
-        self.canvas = tk.Canvas(body, highlightthickness=0, borderwidth=0)
+        self.canvas = tk.Canvas(body, highlightthickness=0, borderwidth=0,
+                                background=theme.current().bg)
         self.canvas.grid(row=0, column=0, sticky="nsew")
         self._vsb = ttk.Scrollbar(body, orient="vertical", command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=self._set_scroll)
@@ -368,6 +376,9 @@ class App(tk.Tk):
         self.prj = Project()
         self.path: Optional[str] = None
 
+        self.theme_mode = tk.StringVar(value="light")
+        self.pal = theme.apply(self, self.theme_mode.get())
+
         self._build_menu()
         self._build_toolbar()
 
@@ -382,12 +393,34 @@ class App(tk.Tk):
         self._tab_preview()
 
         self.status = tk.StringVar(value="Ready. Use File > Import Excel to start.")
-        ttk.Label(self, textvariable=self.status, relief="sunken", anchor="w").pack(
-            fill="x", side="bottom")
+        ttk.Label(self, textvariable=self.status, anchor="w",
+                  style="Status.TLabel").pack(fill="x", side="bottom")
 
+        self._restyle()
         if initial:
             self.open_file(initial)
         self.refresh()
+
+    # ------------------------------------------------------------------
+    def switch_theme(self) -> None:
+        """Re-skin every widget in place - no restart, nothing rebuilt."""
+        self.pal = theme.apply(self, self.theme_mode.get())
+        self._restyle()
+        self.refresh()
+        if self.preview.get("1.0", "1.10").strip():
+            self.refresh_preview()
+        self.status.set("Switched to the %s theme." % self.theme_mode.get())
+
+    def _restyle(self) -> None:
+        """Recolour the classic tk widgets, which ttk styles do not reach."""
+        p = self.pal
+        theme.style_listbox(self.svc_list, p)
+        theme.style_text(self.preview, p)
+        theme.tag_tree_severity(self.chk_tree, p)
+        for tree in (self.ev_tree, self.grp_tree, self.st_tree,
+                     self.en_tree, self.ar_tree, self.chk_tree):
+            theme.stripe(tree, p)
+        self.svc_canvas.configure(background=p.bg)
 
     # ------------------------------------------------------------------
     def _build_menu(self) -> None:
@@ -410,23 +443,33 @@ class App(tk.Tk):
         e.add_command(label="Delete service", command=self.del_service)
         menu.add_cascade(label="Edit", menu=e)
 
+        v = tk.Menu(menu, tearoff=0)
+        for label, value in (("Light theme", "light"), ("Dark theme", "dark")):
+            v.add_radiobutton(label=label, value=value, variable=self.theme_mode,
+                              command=self.switch_theme)
+        menu.add_cascade(label="View", menu=v)
+
         h = tk.Menu(menu, tearoff=0)
         h.add_command(label="About", command=lambda: messagebox.showinfo(
             "About", APP_TITLE + "\n\nExcel -> model -> ARXML for DaVinci Classic.\n"
             "See MAPPING.md for the full field mapping."))
         menu.add_cascade(label="Help", menu=h)
+        for m in (menu, f, e, v, h):
+            theme.style_menu(m, self.pal)
         self.config(menu=menu)
 
     def _build_toolbar(self) -> None:
-        bar = ttk.Frame(self)
-        bar.pack(fill="x", padx=6, pady=6)
+        bar = ttk.Frame(self, style="Toolbar.TFrame", padding=(8, 7))
+        bar.pack(fill="x")
+        # the last one is what the whole tool exists for, so it carries the accent
         for text, cmd in (("Import Excel", self.import_excel),
                           ("Open ARXML", self.open_arxml),
                           ("Save JSON", self.save_json),
-                          ("Validate", self.run_validate),
-                          ("Generate ARXML", self.generate_arxml)):
+                          ("Validate", self.run_validate)):
             ttk.Button(bar, text=text, command=cmd).pack(side="left", padx=(0, 6))
-        self.file_label = ttk.Label(bar, text="(no file)", foreground="#555")
+        ttk.Button(bar, text="Generate ARXML", style="Accent.TButton",
+                   command=self.generate_arxml).pack(side="left", padx=(6, 0))
+        self.file_label = ttk.Label(bar, text="(no file)", style="Toolbar.TLabel")
         self.file_label.pack(side="right")
 
     # ------------------------------------------------------------------
@@ -437,7 +480,8 @@ class App(tk.Tk):
         self.nb.add(tab, text="Project")
         self.project_form = Form(tab, PROJECT_SPEC, columns=2)
         self.project_form.pack(fill="both", expand=True, padx=8, pady=8)
-        ttk.Button(tab, text="Apply", command=self._apply_project).pack(anchor="w", padx=12, pady=8)
+        ttk.Button(tab, text="Apply", style="Accent.TButton",
+                   command=self._apply_project).pack(anchor="w", padx=12, pady=8)
 
     def _apply_project(self) -> None:
         try:
@@ -470,7 +514,7 @@ class App(tk.Tk):
         self.nb.add(tab, text="Services")
         left = ttk.Frame(tab)
         left.pack(side="left", fill="y", padx=(8, 0), pady=8)
-        ttk.Label(left, text="Services").pack(anchor="w")
+        ttk.Label(left, text="Services", style="Caption.TLabel").pack(anchor="w", pady=(0, 4))
         self.svc_list = tk.Listbox(left, width=22, exportselection=False)
         self.svc_list.pack(fill="y", expand=True)
         self.svc_list.bind("<<ListboxSelect>>", lambda _e: self._show_service())
@@ -481,7 +525,7 @@ class App(tk.Tk):
 
         right = ttk.Frame(tab)
         right.pack(side="left", fill="both", expand=True, padx=8, pady=8)
-        canvas = tk.Canvas(right, highlightthickness=0)
+        canvas = self.svc_canvas = tk.Canvas(right, highlightthickness=0, borderwidth=0)
         scroll = ttk.Scrollbar(right, orient="vertical", command=canvas.yview)
         holder = ttk.Frame(canvas)
         holder.bind("<Configure>", lambda _e: canvas.configure(scrollregion=canvas.bbox("all")))
@@ -491,7 +535,8 @@ class App(tk.Tk):
         scroll.pack(side="right", fill="y")
         self.service_form = Form(holder, SERVICE_SPEC, columns=2)
         self.service_form.pack(fill="both", expand=True)
-        ttk.Button(holder, text="Apply", command=self._apply_service).pack(anchor="w", pady=8)
+        ttk.Button(holder, text="Apply", style="Accent.TButton",
+                   command=self._apply_service).pack(anchor="w", pady=8)
 
     def _apply_service(self) -> None:
         try:
@@ -549,16 +594,16 @@ class App(tk.Tk):
 
         sf = ttk.Frame(pane)
         pane.add(sf, weight=3)
-        ttk.Label(sf, text="Structures").pack(anchor="w")
+        ttk.Label(sf, text="Structures", style="Caption.TLabel").pack(anchor="w", pady=(0, 4))
         self.st_tree = ttk.Treeview(sf, columns=("type", "size", "desc"), selectmode="browse")
         self.st_tree.heading("#0", text="Struct / element")
         self.st_tree.heading("type", text="Type")
         self.st_tree.heading("size", text="Bytes")
         self.st_tree.heading("desc", text="Description")
-        self.st_tree.column("#0", width=230)
-        self.st_tree.column("type", width=180)
-        self.st_tree.column("size", width=55, anchor="e")
-        self.st_tree.column("desc", width=320)
+        self.st_tree.column("#0", width=200, minwidth=120)
+        self.st_tree.column("type", width=150, minwidth=90)
+        self.st_tree.column("size", width=55, minwidth=45, anchor="e", stretch=False)
+        self.st_tree.column("desc", width=160, minwidth=80)
         self.st_tree.pack(fill="both", expand=True)
         self.st_tree.bind("<Double-1>", lambda _e: self.edit_struct_node())
         sb = ttk.Frame(sf)
@@ -568,16 +613,24 @@ class App(tk.Tk):
         ttk.Button(sb, text="Edit", command=self.edit_struct_node).pack(side="left", padx=(0, 4))
         ttk.Button(sb, text="Delete", command=self.del_struct_node).pack(side="left")
 
-        af = ttk.Frame(pane)
-        pane.add(af, weight=2)
-        ttk.Label(af, text="Arrays").pack(anchor="w")
+        # Arrays and Enumerations share the right hand column: three side by
+        # side panes do not fit 1240px and the last one was cut off.
+        right = ttk.PanedWindow(pane, orient="vertical")
+        pane.add(right, weight=4)
+
+        af = ttk.Frame(right)
+        right.add(af, weight=1)
+        ttk.Label(af, text="Arrays", style="Caption.TLabel").pack(anchor="w", pady=(0, 4))
         self.ar_tree = ttk.Treeview(af, columns=("name", "type", "size", "bytes", "elem", "desc"),
                                     show="headings", selectmode="browse")
-        for c, t, w, a in (("name", "Array", 150, "w"), ("type", "Element type", 120, "w"),
-                           ("size", "Size", 50, "e"), ("bytes", "Bytes", 55, "e"),
-                           ("elem", "Sub element", 110, "w"), ("desc", "Description", 180, "w")):
+        for c, t, w, mw, a in (("name", "Array", 140, 90, "w"),
+                               ("type", "Element type", 110, 80, "w"),
+                               ("size", "Size", 48, 40, "e"), ("bytes", "Bytes", 52, 45, "e"),
+                               ("elem", "Sub element", 100, 70, "w"),
+                               ("desc", "Description", 110, 60, "w")):
             self.ar_tree.heading(c, text=t)
-            self.ar_tree.column(c, width=w, anchor=a)
+            self.ar_tree.column(c, width=w, minwidth=mw, anchor=a,
+                                stretch=c in ("name", "type", "desc"))
         self.ar_tree.pack(fill="both", expand=True)
         self.ar_tree.bind("<Double-1>", lambda _e: self.edit_array())
         ab = ttk.Frame(af)
@@ -586,16 +639,16 @@ class App(tk.Tk):
         ttk.Button(ab, text="Edit", command=self.edit_array).pack(side="left", padx=(0, 4))
         ttk.Button(ab, text="Delete", command=self.del_array).pack(side="left")
 
-        ef = ttk.Frame(pane)
-        pane.add(ef, weight=2)
-        ttk.Label(ef, text="Enumerations").pack(anchor="w")
+        ef = ttk.Frame(right)
+        right.add(ef, weight=1)
+        ttk.Label(ef, text="Enumerations", style="Caption.TLabel").pack(anchor="w", pady=(0, 4))
         self.en_tree = ttk.Treeview(ef, columns=("value", "vt"), selectmode="browse")
         self.en_tree.heading("#0", text="Enum / literal")
         self.en_tree.heading("value", text="Value")
         self.en_tree.heading("vt", text="AUTOSAR <VT>")
-        self.en_tree.column("#0", width=220)
-        self.en_tree.column("value", width=60, anchor="e")
-        self.en_tree.column("vt", width=280)
+        self.en_tree.column("#0", width=200, minwidth=120)
+        self.en_tree.column("value", width=60, minwidth=50, anchor="e", stretch=False)
+        self.en_tree.column("vt", width=220, minwidth=100)
         self.en_tree.pack(fill="both", expand=True)
         self.en_tree.bind("<Double-1>", lambda _e: self.edit_enum_node())
         eb = ttk.Frame(ef)
@@ -612,11 +665,9 @@ class App(tk.Tk):
         for c, t, w in (("sev", "Severity", 90), ("where", "Where", 260), ("msg", "Message", 800)):
             self.chk_tree.heading(c, text=t)
             self.chk_tree.column(c, width=w, anchor="w")
-        self.chk_tree.tag_configure("ERROR", foreground="#b00020")
-        self.chk_tree.tag_configure("WARNING", foreground="#8a6d00")
-        self.chk_tree.tag_configure("INFO", foreground="#3a3a3a")
         self.chk_tree.pack(fill="both", expand=True, padx=8, pady=8)
-        ttk.Button(tab, text="Re-check", command=self.run_validate).pack(anchor="w", padx=12, pady=(0, 8))
+        ttk.Button(tab, text="Re-check", style="Accent.TButton",
+                   command=self.run_validate).pack(anchor="w", padx=12, pady=(0, 8))
 
     def _tab_preview(self) -> None:
         tab = ttk.Frame(self.nb)
@@ -632,7 +683,8 @@ class App(tk.Tk):
         tab.columnconfigure(0, weight=1)
         bar = ttk.Frame(tab)
         bar.grid(row=2, column=0, sticky="w", padx=8, pady=6)
-        ttk.Button(bar, text="Refresh preview", command=self.refresh_preview).pack(side="left")
+        ttk.Button(bar, text="Refresh preview", style="Accent.TButton",
+                   command=self.refresh_preview).pack(side="left")
 
     # ------------------------------------------------------------------
     # selection helpers
@@ -682,7 +734,8 @@ class App(tk.Tk):
         for si, s in enumerate(self.prj.services):
             for ii, e in enumerate(s.events):
                 hid = (parse_int(s.interface_id) << 16) | parse_int(e.event_id)
-                self.ev_tree.insert("", "end", iid="%d:%d" % (si, ii), values=(
+                self.ev_tree.insert("", "end", iid="%d:%d" % (si, ii),
+                                    tags=(_row_tag(self.ev_tree),), values=(
                     s.tag, e.index, e.name, e.event_id, e.payload_length, e.pdu_length(),
                     "0x%08X" % hid, e.event_group, e.serializer, e.transport))
 
@@ -690,7 +743,8 @@ class App(tk.Tk):
         self.grp_tree.delete(*self.grp_tree.get_children())
         for si, s in enumerate(self.prj.services):
             for ii, g in enumerate(s.event_groups):
-                self.grp_tree.insert("", "end", iid="%d:%d" % (si, ii), values=(
+                self.grp_tree.insert("", "end", iid="%d:%d" % (si, ii),
+                                     tags=(_row_tag(self.grp_tree),), values=(
                     s.tag, g.index, g.name, g.group_id, g.dest_zone, g.dest_ipv4,
                     g.dest_mac, g.dest_udp_port, g.transport, g.routing_mode))
 
@@ -711,6 +765,7 @@ class App(tk.Tk):
                                     values=(m.type, s.struct_size(m.type), m.description))
         for ii, ar in enumerate(s.arrays):
             self.ar_tree.insert("", "end", iid="%d:%d" % (si, ii),
+                                tags=(_row_tag(self.ar_tree),),
                                 values=(ar.name, ar.element_type, ar.size,
                                         s.struct_size(ar.name), ar.element, ar.description))
         for ii, en in enumerate(s.enums):
@@ -724,8 +779,11 @@ class App(tk.Tk):
         self._commit_forms()
         self.preview.delete("1.0", "end")
         try:
-            self.preview.insert("1.0", arxml_gen.generate(self.prj, self.prj.template))
-            self.status.set("Preview refreshed.")
+            text = arxml_gen.generate(self.prj, self.prj.template)
+            self.preview.insert("1.0", text)
+            coloured = theme.highlight_xml(self.preview, self.pal, text)
+            self.status.set("Preview refreshed."
+                            if coloured else "Preview refreshed (too large to colour).")
         except Exception as exc:  # noqa: BLE001 - shown to the user
             self.preview.insert("1.0", "Generation failed:\n\n" + traceback.format_exc())
             self.status.set("Preview failed: %s" % exc)
@@ -856,7 +914,8 @@ class App(tk.Tk):
         self.chk_tree.delete(*self.chk_tree.get_children())
         issues = validator.validate(self.prj)
         for sev, where, msg in issues:
-            self.chk_tree.insert("", "end", values=(sev, where, msg), tags=(sev,))
+            self.chk_tree.insert("", "end", values=(sev, where, msg),
+                                 tags=(sev, _row_tag(self.chk_tree)))
         self.status.set("Validation: " + validator.summary(issues))
         self.nb.select(5)
 
