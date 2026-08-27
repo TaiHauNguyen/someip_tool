@@ -1,4 +1,4 @@
-# SOME/IP Config Tool (ZAFL)
+# SOME/IP Config Tool (Template)
 
 Turns the customer SOME/IP workbooks into the DaVinci Classic import ARXML, and
 lets you review and edit every configuration item in between.
@@ -110,13 +110,13 @@ event socket.
 | `validate.py` | consistency checks |
 | `gui.py` | the Tkinter application |
 | `someip_cli.py` | batch front end |
-| `bootstrap_zafl.py` | workbooks + existing ARXML → `*.someip.json` + ARXML |
+| `bootstrap_Template.py` | workbooks + existing ARXML → `*.someip.json` + ARXML |
 | `MAPPING.md` | **the Excel → ARXML rules**, field by field |
 
-## Regenerating the ZAFL project from scratch
+## Regenerating the Template project from scratch
 
 ```
-python someip_tool\bootstrap_zafl.py
+python someip_tool\bootstrap_Template.py
 ```
 
 Picks up every workbook in the project directory, uses `ZA_someip.arxml` (or a
