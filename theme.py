@@ -37,49 +37,59 @@ class Palette(dict):
 
 LIGHT = Palette(
     name="light",
-    bg="#eef1f5",            # window / tab strip
+    bg="#e4eaf2",            # window / tab strip
     surface="#ffffff",       # panels, entries, trees
-    raised="#f7f9fb",        # toolbar, headings, stripes
-    border="#ccd4dd",
-    text="#1c242e",
-    muted="#63707f",
-    accent="#2563eb",
-    accent_hi="#1d4ed8",
+    raised="#f1f5fa",        # toolbar, status bar
+    stripe="#e7eef7",        # every other tree row
+    head="#dae3ef",          # tree column headings
+    border="#7a8ea8",
+    text="#121922",
+    muted="#47566a",
+    accent="#1d4ed8",
+    accent_hi="#1e40af",
     accent_fg="#ffffff",
-    sel="#d8e6fd",
-    sel_text="#10233f",
-    error="#b3261e",
-    warn="#8a5a00",
-    info="#5a6673",
-    ok="#166534",
+    sel="#bfd7fb",
+    sel_text="#0a1c36",
+    error="#a3160f",
+    warn="#7a4e00",
+    info="#3c4a5c",
+    ok="#0f5c2e",
+    error_bg="#fbe4e2",      # the row behind a finding, not just its text
+    warn_bg="#fbefda",
+    info_bg="#e9eff8",
     # ARXML preview
-    xml_tag="#0b62c4",
-    xml_attr="#8a5a00",
-    xml_value="#166534",
-    xml_comment="#7b8794",
+    xml_tag="#0a56ae",
+    xml_attr="#7a4e00",
+    xml_value="#0f5c2e",
+    xml_comment="#6b7887",
 )
 
 DARK = Palette(
     name="dark",
-    bg="#1a1e24",
-    surface="#232830",
-    raised="#2b313a",
-    border="#3a424d",
-    text="#e4eaf1",
-    muted="#98a4b3",
-    accent="#4d8dfd",
-    accent_hi="#6ba0ff",
-    accent_fg="#0e1116",
-    sel="#31496f",
-    sel_text="#eaf1fb",
-    error="#ff7b72",
-    warn="#e3b341",
-    info="#98a4b3",
-    ok="#57d38c",
-    xml_tag="#79b8ff",
-    xml_attr="#e3b341",
-    xml_value="#7ee787",
-    xml_comment="#7d8792",
+    bg="#151920",
+    surface="#1f242c",
+    raised="#2a313c",
+    stripe="#2b323d",
+    head="#333c49",
+    border="#697787",
+    text="#eff4fa",
+    muted="#adbaca",
+    accent="#69a6ff",
+    accent_hi="#8dbcff",
+    accent_fg="#0b0f14",
+    sel="#2f5390",
+    sel_text="#f2f7fd",
+    error="#ff8b82",
+    warn="#f0c355",
+    info="#adbaca",
+    ok="#6fe0a0",
+    error_bg="#3d211f",
+    warn_bg="#3a3220",
+    info_bg="#252d38",
+    xml_tag="#8cc2ff",
+    xml_attr="#f0c355",
+    xml_value="#8ef2a6",
+    xml_comment="#8b96a3",
 )
 PALETTES: Dict[str, Palette] = {"light": LIGHT, "dark": DARK}
 
@@ -111,20 +121,21 @@ def apply(root: tk.Misc, mode: str = "light") -> Palette:
     style.configure("TFrame", background=p.bg)
     style.configure("TLabel", background=p.bg, foreground=p.text)
     style.configure("TLabelframe", background=p.bg, bordercolor=p.border)
-    style.configure("TLabelframe.Label", background=p.bg, foreground=p.muted)
+    style.configure("TLabelframe.Label", background=p.bg, foreground=p.text,
+                    font=BOLD_FONT)
     style.configure("TPanedwindow", background=p.bg)
     style.configure("Sash", sashthickness=6, gripcount=0, background=p.border)
 
     # a section heading inside a form, and the small grey caption above a tree
     style.configure("Section.TLabel", background=p.bg, foreground=p.accent,
                     font=BOLD_FONT)
-    style.configure("Caption.TLabel", background=p.bg, foreground=p.muted,
+    style.configure("Caption.TLabel", background=p.bg, foreground=p.text,
                     font=BOLD_FONT)
     style.configure("Muted.TLabel", background=p.bg, foreground=p.muted)
-    style.configure("Status.TLabel", background=p.raised, foreground=p.muted,
+    style.configure("Status.TLabel", background=p.raised, foreground=p.text,
                     padding=(8, 4))
     style.configure("Toolbar.TFrame", background=p.raised)
-    style.configure("Toolbar.TLabel", background=p.raised, foreground=p.muted)
+    style.configure("Toolbar.TLabel", background=p.raised, foreground=p.text)
 
     # -- buttons ------------------------------------------------------------
     style.configure("TButton", background=p.surface, foreground=p.text,
@@ -172,12 +183,12 @@ def apply(root: tk.Misc, mode: str = "light") -> Palette:
     style.map("Treeview",
               background=[("selected", p.sel)],
               foreground=[("selected", p.sel_text)])
-    style.configure("Treeview.Heading", background=p.raised, foreground=p.muted,
+    style.configure("Treeview.Heading", background=p.head, foreground=p.text,
                     bordercolor=p.border, relief="flat", padding=(6, 5),
                     font=BOLD_FONT)
     style.map("Treeview.Heading",
               background=[("active", p.sel)],
-              foreground=[("active", p.accent)])
+              foreground=[("active", p.accent_hi)])
 
     # -- scrollbars ---------------------------------------------------------
     for cls in ("Vertical.TScrollbar", "Horizontal.TScrollbar"):
@@ -216,15 +227,15 @@ def style_text(text: tk.Text, p: Palette) -> None:
 
 
 def tag_tree_severity(tree: ttk.Treeview, p: Palette) -> None:
-    tree.tag_configure("ERROR", foreground=p.error)
-    tree.tag_configure("WARNING", foreground=p.warn)
-    tree.tag_configure("INFO", foreground=p.info)
+    tree.tag_configure("ERROR", foreground=p.error, background=p.error_bg)
+    tree.tag_configure("WARNING", foreground=p.warn, background=p.warn_bg)
+    tree.tag_configure("INFO", foreground=p.info, background=p.info_bg)
 
 
 def stripe(tree: ttk.Treeview, p: Palette) -> None:
     """Register the alternating row tags; rows opt in with tags=("odd",)."""
     tree.tag_configure("even", background=p.surface)
-    tree.tag_configure("odd", background=p.raised)
+    tree.tag_configure("odd", background=p.stripe)
 
 
 # --------------------------------------------------------------------------
