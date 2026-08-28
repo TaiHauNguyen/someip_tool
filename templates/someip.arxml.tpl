@@ -123,10 +123,12 @@
               <LENGTH t-text="sd.length"/>
             </GENERAL-PURPOSE-PDU>
 
+            <!-- A transmission timing only applies to a PDU this ECU sends;
+                 a received one carries the unused bit pattern instead. -->
             <I-SIGNAL-I-PDU t-foreach="events as ev" UUID="${uuid(ev.pdu_path)}">
               <SHORT-NAME>${ev.pdu}</SHORT-NAME>
               <LENGTH t-text="ev.length"/>
-              <I-PDU-TIMING-SPECIFICATIONS>
+              <I-PDU-TIMING-SPECIFICATIONS t-if="ev.direction == 'OUT'">
                 <I-PDU-TIMING>
                   <TRANSMISSION-MODE-DECLARATION>
                     <TRANSMISSION-MODE-TRUE-TIMING>
@@ -146,7 +148,7 @@
                   <TRANSFER-PROPERTY>TRIGGERED-WITHOUT-REPETITION</TRANSFER-PROPERTY>
                 </I-SIGNAL-TO-I-PDU-MAPPING>
               </I-SIGNAL-TO-PDU-MAPPINGS>
-              <UNUSED-BIT-PATTERN>0</UNUSED-BIT-PATTERN>
+              <UNUSED-BIT-PATTERN t-if="ev.direction == 'IN'">0</UNUSED-BIT-PATTERN>
             </I-SIGNAL-I-PDU>
           </ELEMENTS>
         </AR-PACKAGE>
@@ -385,12 +387,16 @@
 
                       <SO-AD-CONFIG>
                         <CONNECTION-BUNDLES>
-                          <SOCKET-CONNECTION-BUNDLE t-foreach="bundles as scb" UUID="${uuid(scb.path)}">
+                          <!-- Neither of these is Identifiable in the 4.4 schema, so they take no UUID. -->
+                          <SOCKET-CONNECTION-BUNDLE t-foreach="bundles as scb">
                             <SHORT-NAME>${scb.name}</SHORT-NAME>
                             <BUNDLED-CONNECTIONS>
+                              <!-- A connection that carries no PDU of its own is
+                                   written in the short form, the way the files
+                                   DaVinci accepts do it. -->
                               <SOCKET-CONNECTION>
-                                <CLIENT-IP-ADDR-FROM-CONNECTION-REQUEST t-text="scb.client_from_request"/>
-                                <CLIENT-PORT-FROM-CONNECTION-REQUEST t-text="scb.client_from_request"/>
+                                <CLIENT-IP-ADDR-FROM-CONNECTION-REQUEST t-if="scb.connection_pdus" t-text="scb.client_from_request"/>
+                                <CLIENT-PORT-FROM-CONNECTION-REQUEST t-if="scb.connection_pdus" t-text="scb.client_from_request"/>
                                 <CLIENT-PORT-REF DEST="SOCKET-ADDRESS">${scb.client_ref}</CLIENT-PORT-REF>
                                 <PDUS t-if="scb.connection_pdus">
                                   <SOCKET-CONNECTION-IPDU-IDENTIFIER t-foreach="scb.connection_pdus as cp">
@@ -398,7 +404,7 @@
                                     <PDU-TRIGGERING-REF DEST="PDU-TRIGGERING">${cp.pt_ref}</PDU-TRIGGERING-REF>
                                   </SOCKET-CONNECTION-IPDU-IDENTIFIER>
                                 </PDUS>
-                                <SHORT-LABEL>${scb.label}</SHORT-LABEL>
+                                <SHORT-LABEL t-if="scb.connection_pdus">${scb.label}</SHORT-LABEL>
                               </SOCKET-CONNECTION>
                             </BUNDLED-CONNECTIONS>
                             <PDUS t-if="scb.pdus">
@@ -457,17 +463,17 @@
                                     <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">${psi.routing_group_ref}</ROUTING-GROUP-REF>
                                   </ROUTING-GROUP-REFS>
                                   <EVENT-HANDLERS>
-                                    <EVENT-HANDLER t-foreach="psi.handlers as eh" UUID="${uuid(eh.path)}">
+                                    <EVENT-HANDLER t-foreach="psi.handlers as eh">
                                       <SHORT-NAME>${eh.name}</SHORT-NAME>
-                                      <APPLICATION-ENDPOINT-REF DEST="APPLICATION-ENDPOINT">${eh.aep_ref}</APPLICATION-ENDPOINT-REF>
+                                      <APPLICATION-ENDPOINT-REF t-if="not eh.offered" DEST="APPLICATION-ENDPOINT">${eh.aep_ref}</APPLICATION-ENDPOINT-REF>
                                       <CONSUMED-EVENT-GROUP-REFS>
                                         <CONSUMED-EVENT-GROUP-REF DEST="CONSUMED-EVENT-GROUP">${eh.ceg_ref}</CONSUMED-EVENT-GROUP-REF>
                                       </CONSUMED-EVENT-GROUP-REFS>
-                                      <MULTICAST-THRESHOLD>0</MULTICAST-THRESHOLD>
-                                      <ROUTING-GROUP-REFS>
+                                      <MULTICAST-THRESHOLD t-if="eh.offered">0</MULTICAST-THRESHOLD>
+                                      <ROUTING-GROUP-REFS t-if="eh.offered">
                                         <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">${eh.routing_group_ref}</ROUTING-GROUP-REF>
                                       </ROUTING-GROUP-REFS>
-                                      <SD-SERVER-CONFIG>
+                                      <SD-SERVER-CONFIG t-if="eh.offered">
                                         <REQUEST-RESPONSE-DELAY>
                                           <MAX-VALUE t-text="eh.rr_max"/>
                                           <MIN-VALUE t-text="eh.rr_min"/>

@@ -56,19 +56,19 @@
               <CATEGORY>SD</CATEGORY>
               <LENGTH>1500</LENGTH>
             </GENERAL-PURPOSE-PDU>
-            <GENERAL-PURPOSE-PDU UUID="16e86c09-db33-6a4c-9cf3-1578a3a5bbbb">
-              <SHORT-NAME>SD_Ctrl_Rx_RMCU</SHORT-NAME>
+            <GENERAL-PURPOSE-PDU UUID="bc1a9b4a-b2dc-ea30-3c9d-f7d98ddd66bc">
+              <SHORT-NAME>SD_Ctrl_Rx_PCU</SHORT-NAME>
               <CATEGORY>SD</CATEGORY>
               <LENGTH>1500</LENGTH>
             </GENERAL-PURPOSE-PDU>
-            <GENERAL-PURPOSE-PDU UUID="05b0543d-20d8-f0ab-666d-ff71298c29c8">
-              <SHORT-NAME>SD_Ctrl_Tx_RMCU</SHORT-NAME>
+            <GENERAL-PURPOSE-PDU UUID="2978c9d0-4631-1837-2a6a-0fee51a044e4">
+              <SHORT-NAME>SD_Ctrl_Tx_PCU</SHORT-NAME>
               <CATEGORY>SD</CATEGORY>
               <LENGTH>1500</LENGTH>
             </GENERAL-PURPOSE-PDU>
-            <I-SIGNAL-I-PDU UUID="d2238d36-9c67-6186-15d5-f59c0107f5a8">
-              <SHORT-NAME>pdu_RMCUZALeft10msEvent</SHORT-NAME>
-              <LENGTH>26</LENGTH>
+            <I-SIGNAL-I-PDU UUID="d2c8d753-4f56-bbf5-2e3c-dc39ee93e99a">
+              <SHORT-NAME>pdu_PCUIVA10msEvent</SHORT-NAME>
+              <LENGTH>27</LENGTH>
               <I-PDU-TIMING-SPECIFICATIONS>
                 <I-PDU-TIMING>
                   <TRANSMISSION-MODE-DECLARATION>
@@ -80,6 +80,43 @@
                   </TRANSMISSION-MODE-DECLARATION>
                 </I-PDU-TIMING>
               </I-PDU-TIMING-SPECIFICATIONS>
+              <I-SIGNAL-TO-PDU-MAPPINGS>
+                <I-SIGNAL-TO-I-PDU-MAPPING UUID="58c9f0ae-242d-253f-8fe0-ff35c4fa6f74">
+                  <SHORT-NAME>map_sig_PCUIVA10msEvent</SHORT-NAME>
+                  <I-SIGNAL-REF DEST="I-SIGNAL">/Communication/Signals/sig_PCUIVA10msEvent</I-SIGNAL-REF>
+                  <PACKING-BYTE-ORDER>OPAQUE</PACKING-BYTE-ORDER>
+                  <START-POSITION>0</START-POSITION>
+                  <TRANSFER-PROPERTY>TRIGGERED-WITHOUT-REPETITION</TRANSFER-PROPERTY>
+                </I-SIGNAL-TO-I-PDU-MAPPING>
+              </I-SIGNAL-TO-PDU-MAPPINGS>
+            </I-SIGNAL-I-PDU>
+            <I-SIGNAL-I-PDU UUID="9adac636-eea7-18af-1c06-8b56cd3d2695">
+              <SHORT-NAME>pdu_PCUIVA50msEvent</SHORT-NAME>
+              <LENGTH>20</LENGTH>
+              <I-PDU-TIMING-SPECIFICATIONS>
+                <I-PDU-TIMING>
+                  <TRANSMISSION-MODE-DECLARATION>
+                    <TRANSMISSION-MODE-TRUE-TIMING>
+                      <EVENT-CONTROLLED-TIMING>
+                        <NUMBER-OF-REPETITIONS>0</NUMBER-OF-REPETITIONS>
+                      </EVENT-CONTROLLED-TIMING>
+                    </TRANSMISSION-MODE-TRUE-TIMING>
+                  </TRANSMISSION-MODE-DECLARATION>
+                </I-PDU-TIMING>
+              </I-PDU-TIMING-SPECIFICATIONS>
+              <I-SIGNAL-TO-PDU-MAPPINGS>
+                <I-SIGNAL-TO-I-PDU-MAPPING UUID="49ec9d68-cd65-46da-44a9-872bd2910b75">
+                  <SHORT-NAME>map_sig_PCUIVA50msEvent</SHORT-NAME>
+                  <I-SIGNAL-REF DEST="I-SIGNAL">/Communication/Signals/sig_PCUIVA50msEvent</I-SIGNAL-REF>
+                  <PACKING-BYTE-ORDER>OPAQUE</PACKING-BYTE-ORDER>
+                  <START-POSITION>0</START-POSITION>
+                  <TRANSFER-PROPERTY>TRIGGERED-WITHOUT-REPETITION</TRANSFER-PROPERTY>
+                </I-SIGNAL-TO-I-PDU-MAPPING>
+              </I-SIGNAL-TO-PDU-MAPPINGS>
+            </I-SIGNAL-I-PDU>
+            <I-SIGNAL-I-PDU UUID="d2238d36-9c67-6186-15d5-f59c0107f5a8">
+              <SHORT-NAME>pdu_RMCUZALeft10msEvent</SHORT-NAME>
+              <LENGTH>26</LENGTH>
               <I-SIGNAL-TO-PDU-MAPPINGS>
                 <I-SIGNAL-TO-I-PDU-MAPPING UUID="eecdc67d-acc9-c4fa-6b08-24b0e8356311">
                   <SHORT-NAME>map_sig_RMCUZALeft10msEvent</SHORT-NAME>
@@ -96,6 +133,50 @@
         <AR-PACKAGE UUID="66e13fda-ef63-95a3-dc72-5b23f284eafd">
           <SHORT-NAME>Signals</SHORT-NAME>
           <ELEMENTS>
+            <I-SIGNAL UUID="f04ddc83-6d72-e4a9-1478-b7d0650fb6e5">
+              <SHORT-NAME>sig_PCUIVA10msEvent</SHORT-NAME>
+              <DATA-TRANSFORMATIONS>
+                <DATA-TRANSFORMATION-REF-CONDITIONAL>
+                  <DATA-TRANSFORMATION-REF DEST="DATA-TRANSFORMATION">/Communication/DataTransformation/TransformerConfiguration/SomeIpDefaultTransformation</DATA-TRANSFORMATION-REF>
+                </DATA-TRANSFORMATION-REF-CONDITIONAL>
+              </DATA-TRANSFORMATIONS>
+              <DATA-TYPE-POLICY>TRANSFORMING-I-SIGNAL</DATA-TYPE-POLICY>
+              <LENGTH>27</LENGTH>
+              <SYSTEM-SIGNAL-REF DEST="SYSTEM-SIGNAL">/Communication/SystemSignals/sys_PCUIVA10msEvent</SYSTEM-SIGNAL-REF>
+              <TRANSFORMATION-I-SIGNAL-PROPSS>
+                <SOMEIP-TRANSFORMATION-I-SIGNAL-PROPS>
+                  <SOMEIP-TRANSFORMATION-I-SIGNAL-PROPS-VARIANTS>
+                    <SOMEIP-TRANSFORMATION-I-SIGNAL-PROPS-CONDITIONAL>
+                      <TRANSFORMER-REF DEST="TRANSFORMATION-TECHNOLOGY">/Communication/DataTransformation/TransformerConfiguration/SomeIpDefaultTransformer</TRANSFORMER-REF>
+                      <INTERFACE-VERSION>1</INTERFACE-VERSION>
+                      <MESSAGE-TYPE>NOTIFICATION</MESSAGE-TYPE>
+                    </SOMEIP-TRANSFORMATION-I-SIGNAL-PROPS-CONDITIONAL>
+                  </SOMEIP-TRANSFORMATION-I-SIGNAL-PROPS-VARIANTS>
+                </SOMEIP-TRANSFORMATION-I-SIGNAL-PROPS>
+              </TRANSFORMATION-I-SIGNAL-PROPSS>
+            </I-SIGNAL>
+            <I-SIGNAL UUID="dcea9c8b-df02-bb94-8f96-080aa20cb92d">
+              <SHORT-NAME>sig_PCUIVA50msEvent</SHORT-NAME>
+              <DATA-TRANSFORMATIONS>
+                <DATA-TRANSFORMATION-REF-CONDITIONAL>
+                  <DATA-TRANSFORMATION-REF DEST="DATA-TRANSFORMATION">/Communication/DataTransformation/TransformerConfiguration/SomeIpDefaultTransformation</DATA-TRANSFORMATION-REF>
+                </DATA-TRANSFORMATION-REF-CONDITIONAL>
+              </DATA-TRANSFORMATIONS>
+              <DATA-TYPE-POLICY>TRANSFORMING-I-SIGNAL</DATA-TYPE-POLICY>
+              <LENGTH>20</LENGTH>
+              <SYSTEM-SIGNAL-REF DEST="SYSTEM-SIGNAL">/Communication/SystemSignals/sys_PCUIVA50msEvent</SYSTEM-SIGNAL-REF>
+              <TRANSFORMATION-I-SIGNAL-PROPSS>
+                <SOMEIP-TRANSFORMATION-I-SIGNAL-PROPS>
+                  <SOMEIP-TRANSFORMATION-I-SIGNAL-PROPS-VARIANTS>
+                    <SOMEIP-TRANSFORMATION-I-SIGNAL-PROPS-CONDITIONAL>
+                      <TRANSFORMER-REF DEST="TRANSFORMATION-TECHNOLOGY">/Communication/DataTransformation/TransformerConfiguration/SomeIpDefaultTransformer</TRANSFORMER-REF>
+                      <INTERFACE-VERSION>1</INTERFACE-VERSION>
+                      <MESSAGE-TYPE>NOTIFICATION</MESSAGE-TYPE>
+                    </SOMEIP-TRANSFORMATION-I-SIGNAL-PROPS-CONDITIONAL>
+                  </SOMEIP-TRANSFORMATION-I-SIGNAL-PROPS-VARIANTS>
+                </SOMEIP-TRANSFORMATION-I-SIGNAL-PROPS>
+              </TRANSFORMATION-I-SIGNAL-PROPSS>
+            </I-SIGNAL>
             <I-SIGNAL UUID="0c5e9a2a-e913-2a68-232b-97ee755a67f1">
               <SHORT-NAME>sig_RMCUZALeft10msEvent</SHORT-NAME>
               <DATA-TRANSFORMATIONS>
@@ -123,6 +204,14 @@
         <AR-PACKAGE UUID="ab9042b1-fedc-20dc-198a-0e64da057f10">
           <SHORT-NAME>SystemSignals</SHORT-NAME>
           <ELEMENTS>
+            <SYSTEM-SIGNAL UUID="02927095-9f1d-f80e-b0bd-7e79a0077339">
+              <SHORT-NAME>sys_PCUIVA10msEvent</SHORT-NAME>
+              <DYNAMIC-LENGTH>false</DYNAMIC-LENGTH>
+            </SYSTEM-SIGNAL>
+            <SYSTEM-SIGNAL UUID="87f2b279-dfbd-47f3-d9cc-a765dac30094">
+              <SHORT-NAME>sys_PCUIVA50msEvent</SHORT-NAME>
+              <DYNAMIC-LENGTH>false</DYNAMIC-LENGTH>
+            </SYSTEM-SIGNAL>
             <SYSTEM-SIGNAL UUID="7b928978-8ae1-c64f-e303-a07a71cf898f">
               <SHORT-NAME>sys_RMCUZALeft10msEvent</SHORT-NAME>
               <DYNAMIC-LENGTH>false</DYNAMIC-LENGTH>
@@ -134,6 +223,10 @@
     <AR-PACKAGE UUID="39d866d7-46cd-e173-65e0-464be27ee844">
       <SHORT-NAME>SoAdRoutingGroups</SHORT-NAME>
       <ELEMENTS>
+        <SO-AD-ROUTING-GROUP UUID="f1c31a0d-a3d6-5dcd-09a5-ce462fe61ec1">
+          <SHORT-NAME>SoAdRG_PCU_P_EventGroup</SHORT-NAME>
+          <EVENT-GROUP-CONTROL-TYPE>ACTIVATION-UNICAST</EVENT-GROUP-CONTROL-TYPE>
+        </SO-AD-ROUTING-GROUP>
         <SO-AD-ROUTING-GROUP UUID="10a8f067-de97-03a7-b851-8e36526f368b">
           <SHORT-NAME>SoAdRG_RMCU_C_EventGroup</SHORT-NAME>
           <EVENT-GROUP-CONTROL-TYPE>ACTIVATION-UNICAST</EVENT-GROUP-CONTROL-TYPE>
@@ -157,16 +250,31 @@
               <FIBEX-ELEMENT-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Rx_Multicast</FIBEX-ELEMENT-REF>
             </FIBEX-ELEMENT-REF-CONDITIONAL>
             <FIBEX-ELEMENT-REF-CONDITIONAL>
-              <FIBEX-ELEMENT-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Rx_RMCU</FIBEX-ELEMENT-REF>
+              <FIBEX-ELEMENT-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Rx_PCU</FIBEX-ELEMENT-REF>
             </FIBEX-ELEMENT-REF-CONDITIONAL>
             <FIBEX-ELEMENT-REF-CONDITIONAL>
-              <FIBEX-ELEMENT-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Tx_RMCU</FIBEX-ELEMENT-REF>
+              <FIBEX-ELEMENT-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Tx_PCU</FIBEX-ELEMENT-REF>
+            </FIBEX-ELEMENT-REF-CONDITIONAL>
+            <FIBEX-ELEMENT-REF-CONDITIONAL>
+              <FIBEX-ELEMENT-REF DEST="I-SIGNAL">/Communication/Signals/sig_PCUIVA10msEvent</FIBEX-ELEMENT-REF>
+            </FIBEX-ELEMENT-REF-CONDITIONAL>
+            <FIBEX-ELEMENT-REF-CONDITIONAL>
+              <FIBEX-ELEMENT-REF DEST="I-SIGNAL">/Communication/Signals/sig_PCUIVA50msEvent</FIBEX-ELEMENT-REF>
             </FIBEX-ELEMENT-REF-CONDITIONAL>
             <FIBEX-ELEMENT-REF-CONDITIONAL>
               <FIBEX-ELEMENT-REF DEST="I-SIGNAL">/Communication/Signals/sig_RMCUZALeft10msEvent</FIBEX-ELEMENT-REF>
             </FIBEX-ELEMENT-REF-CONDITIONAL>
             <FIBEX-ELEMENT-REF-CONDITIONAL>
+              <FIBEX-ELEMENT-REF DEST="I-SIGNAL-I-PDU">/Communication/PDUs/pdu_PCUIVA10msEvent</FIBEX-ELEMENT-REF>
+            </FIBEX-ELEMENT-REF-CONDITIONAL>
+            <FIBEX-ELEMENT-REF-CONDITIONAL>
+              <FIBEX-ELEMENT-REF DEST="I-SIGNAL-I-PDU">/Communication/PDUs/pdu_PCUIVA50msEvent</FIBEX-ELEMENT-REF>
+            </FIBEX-ELEMENT-REF-CONDITIONAL>
+            <FIBEX-ELEMENT-REF-CONDITIONAL>
               <FIBEX-ELEMENT-REF DEST="I-SIGNAL-I-PDU">/Communication/PDUs/pdu_RMCUZALeft10msEvent</FIBEX-ELEMENT-REF>
+            </FIBEX-ELEMENT-REF-CONDITIONAL>
+            <FIBEX-ELEMENT-REF-CONDITIONAL>
+              <FIBEX-ELEMENT-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_P_EventGroup</FIBEX-ELEMENT-REF>
             </FIBEX-ELEMENT-REF-CONDITIONAL>
             <FIBEX-ELEMENT-REF-CONDITIONAL>
               <FIBEX-ELEMENT-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_RMCU_C_EventGroup</FIBEX-ELEMENT-REF>
@@ -178,6 +286,40 @@
     <AR-PACKAGE UUID="02e4cec7-d6d2-1718-265f-a897d19a9d82">
       <SHORT-NAME>PortInterfaces</SHORT-NAME>
       <ELEMENTS>
+        <SENDER-RECEIVER-INTERFACE UUID="c831a8b5-4417-946c-d03e-5ae635bbe3e9">
+          <SHORT-NAME>SoIp_I_P_PCUIVA10msEvent</SHORT-NAME>
+          <IS-SERVICE>false</IS-SERVICE>
+          <DATA-ELEMENTS>
+            <VARIABLE-DATA-PROTOTYPE UUID="ae36b6e4-9123-90f8-5f17-77e528ad92ef">
+              <SHORT-NAME>PCUIVA10msEvent</SHORT-NAME>
+              <SW-DATA-DEF-PROPS>
+                <SW-DATA-DEF-PROPS-VARIANTS>
+                  <SW-DATA-DEF-PROPS-CONDITIONAL>
+                    <SW-CALIBRATION-ACCESS>NOT-ACCESSIBLE</SW-CALIBRATION-ACCESS>
+                  </SW-DATA-DEF-PROPS-CONDITIONAL>
+                </SW-DATA-DEF-PROPS-VARIANTS>
+              </SW-DATA-DEF-PROPS>
+              <TYPE-TREF DEST="IMPLEMENTATION-DATA-TYPE">/DataTypes/PCUIVA10msStruct</TYPE-TREF>
+            </VARIABLE-DATA-PROTOTYPE>
+          </DATA-ELEMENTS>
+        </SENDER-RECEIVER-INTERFACE>
+        <SENDER-RECEIVER-INTERFACE UUID="648b72cc-3406-e905-a355-4ba3e0584957">
+          <SHORT-NAME>SoIp_I_P_PCUIVA50msEvent</SHORT-NAME>
+          <IS-SERVICE>false</IS-SERVICE>
+          <DATA-ELEMENTS>
+            <VARIABLE-DATA-PROTOTYPE UUID="f664aa3e-a291-1829-c7fa-c68f58ce982c">
+              <SHORT-NAME>PCUIVA50msEvent</SHORT-NAME>
+              <SW-DATA-DEF-PROPS>
+                <SW-DATA-DEF-PROPS-VARIANTS>
+                  <SW-DATA-DEF-PROPS-CONDITIONAL>
+                    <SW-CALIBRATION-ACCESS>NOT-ACCESSIBLE</SW-CALIBRATION-ACCESS>
+                  </SW-DATA-DEF-PROPS-CONDITIONAL>
+                </SW-DATA-DEF-PROPS-VARIANTS>
+              </SW-DATA-DEF-PROPS>
+              <TYPE-TREF DEST="IMPLEMENTATION-DATA-TYPE">/DataTypes/PCUIVA50msStruct</TYPE-TREF>
+            </VARIABLE-DATA-PROTOTYPE>
+          </DATA-ELEMENTS>
+        </SENDER-RECEIVER-INTERFACE>
         <SENDER-RECEIVER-INTERFACE UUID="3cfdfc5b-4e39-dae0-fe18-1735087e731c">
           <SHORT-NAME>SoIp_I_C_RMCUZALeft10msEvent</SHORT-NAME>
           <IS-SERVICE>false</IS-SERVICE>
@@ -200,6 +342,223 @@
     <AR-PACKAGE UUID="ea880bc6-9624-108f-dab4-2d88f55eeef2">
       <SHORT-NAME>DataTypes</SHORT-NAME>
       <ELEMENTS>
+        <IMPLEMENTATION-DATA-TYPE UUID="78e9650c-8ec6-0318-be21-bb5fc7c1a062">
+          <SHORT-NAME>PCUIVA10msStruct</SHORT-NAME>
+          <CATEGORY>STRUCTURE</CATEGORY>
+          <SW-DATA-DEF-PROPS>
+            <SW-DATA-DEF-PROPS-VARIANTS>
+              <SW-DATA-DEF-PROPS-CONDITIONAL>
+                <SW-CALIBRATION-ACCESS>READ-ONLY</SW-CALIBRATION-ACCESS>
+              </SW-DATA-DEF-PROPS-CONDITIONAL>
+            </SW-DATA-DEF-PROPS-VARIANTS>
+          </SW-DATA-DEF-PROPS>
+          <SUB-ELEMENTS>
+            <IMPLEMENTATION-DATA-TYPE-ELEMENT UUID="98d50fb4-b633-d07a-2d94-37815a90ddb9">
+              <SHORT-NAME>emsReqSensorInfo1</SHORT-NAME>
+              <CATEGORY>STRUCTURE</CATEGORY>
+              <SUB-ELEMENTS>
+                <IMPLEMENTATION-DATA-TYPE-ELEMENT UUID="db1ee908-c330-1f87-a019-dc81563a11ec">
+                  <SHORT-NAME>crashOtptSts</SHORT-NAME>
+                  <CATEGORY>VALUE</CATEGORY>
+                  <SW-DATA-DEF-PROPS>
+                    <SW-DATA-DEF-PROPS-VARIANTS>
+                      <SW-DATA-DEF-PROPS-CONDITIONAL>
+                        <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/uint8</BASE-TYPE-REF>
+                        <COMPU-METHOD-REF DEST="COMPU-METHOD">/DataTypes/CompuMethods/CrashOtptStsType</COMPU-METHOD-REF>
+                        <DATA-CONSTR-REF DEST="DATA-CONSTR">/DataTypes/DataConstraints/CrashOtptStsconst</DATA-CONSTR-REF>
+                      </SW-DATA-DEF-PROPS-CONDITIONAL>
+                    </SW-DATA-DEF-PROPS-VARIANTS>
+                  </SW-DATA-DEF-PROPS>
+                </IMPLEMENTATION-DATA-TYPE-ELEMENT>
+                <IMPLEMENTATION-DATA-TYPE-ELEMENT UUID="f8f6edff-1757-363b-d5a3-5024f74efd15">
+                  <SHORT-NAME>isgTrqAchvd</SHORT-NAME>
+                  <CATEGORY>VALUE</CATEGORY>
+                  <SW-DATA-DEF-PROPS>
+                    <SW-DATA-DEF-PROPS-VARIANTS>
+                      <SW-DATA-DEF-PROPS-CONDITIONAL>
+                        <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/float32</BASE-TYPE-REF>
+                        <SW-CALIBRATION-ACCESS>READ-ONLY</SW-CALIBRATION-ACCESS>
+                      </SW-DATA-DEF-PROPS-CONDITIONAL>
+                    </SW-DATA-DEF-PROPS-VARIANTS>
+                  </SW-DATA-DEF-PROPS>
+                </IMPLEMENTATION-DATA-TYPE-ELEMENT>
+                <IMPLEMENTATION-DATA-TYPE-ELEMENT UUID="22351570-8680-807c-c7fe-6726edd87007">
+                  <SHORT-NAME>pCUBCMRemoteFunctionState</SHORT-NAME>
+                  <CATEGORY>VALUE</CATEGORY>
+                  <SW-DATA-DEF-PROPS>
+                    <SW-DATA-DEF-PROPS-VARIANTS>
+                      <SW-DATA-DEF-PROPS-CONDITIONAL>
+                        <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/uint8</BASE-TYPE-REF>
+                        <COMPU-METHOD-REF DEST="COMPU-METHOD">/DataTypes/CompuMethods/PCUBCMRemoteFunctionStateType</COMPU-METHOD-REF>
+                        <DATA-CONSTR-REF DEST="DATA-CONSTR">/DataTypes/DataConstraints/PCUBCMRemoteFunctionStateconst</DATA-CONSTR-REF>
+                      </SW-DATA-DEF-PROPS-CONDITIONAL>
+                    </SW-DATA-DEF-PROPS-VARIANTS>
+                  </SW-DATA-DEF-PROPS>
+                </IMPLEMENTATION-DATA-TYPE-ELEMENT>
+                <IMPLEMENTATION-DATA-TYPE-ELEMENT UUID="40b2d2c2-1700-0f91-bfdc-46e6d2b607da">
+                  <SHORT-NAME>pCUBMSSocActualEST</SHORT-NAME>
+                  <CATEGORY>VALUE</CATEGORY>
+                  <SW-DATA-DEF-PROPS>
+                    <SW-DATA-DEF-PROPS-VARIANTS>
+                      <SW-DATA-DEF-PROPS-CONDITIONAL>
+                        <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/float32</BASE-TYPE-REF>
+                        <SW-CALIBRATION-ACCESS>READ-ONLY</SW-CALIBRATION-ACCESS>
+                      </SW-DATA-DEF-PROPS-CONDITIONAL>
+                    </SW-DATA-DEF-PROPS-VARIANTS>
+                  </SW-DATA-DEF-PROPS>
+                </IMPLEMENTATION-DATA-TYPE-ELEMENT>
+                <IMPLEMENTATION-DATA-TYPE-ELEMENT UUID="cfcde988-7929-dd1f-6ee8-20bd61831c97">
+                  <SHORT-NAME>pCUCVCACTGear</SHORT-NAME>
+                  <CATEGORY>VALUE</CATEGORY>
+                  <SW-DATA-DEF-PROPS>
+                    <SW-DATA-DEF-PROPS-VARIANTS>
+                      <SW-DATA-DEF-PROPS-CONDITIONAL>
+                        <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/uint8</BASE-TYPE-REF>
+                        <COMPU-METHOD-REF DEST="COMPU-METHOD">/DataTypes/CompuMethods/PCUCVCACTGearType</COMPU-METHOD-REF>
+                        <DATA-CONSTR-REF DEST="DATA-CONSTR">/DataTypes/DataConstraints/PCUCVCACTGearconst</DATA-CONSTR-REF>
+                      </SW-DATA-DEF-PROPS-CONDITIONAL>
+                    </SW-DATA-DEF-PROPS-VARIANTS>
+                  </SW-DATA-DEF-PROPS>
+                </IMPLEMENTATION-DATA-TYPE-ELEMENT>
+                <IMPLEMENTATION-DATA-TYPE-ELEMENT UUID="39fe33c8-7902-7435-d7cf-a0f446b2f165">
+                  <SHORT-NAME>pCUCVCACTGearValid</SHORT-NAME>
+                  <CATEGORY>VALUE</CATEGORY>
+                  <SW-DATA-DEF-PROPS>
+                    <SW-DATA-DEF-PROPS-VARIANTS>
+                      <SW-DATA-DEF-PROPS-CONDITIONAL>
+                        <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/uint8</BASE-TYPE-REF>
+                        <COMPU-METHOD-REF DEST="COMPU-METHOD">/DataTypes/CompuMethods/PCUCVCACTGearValidType</COMPU-METHOD-REF>
+                        <DATA-CONSTR-REF DEST="DATA-CONSTR">/DataTypes/DataConstraints/PCUCVCACTGearValidconst</DATA-CONSTR-REF>
+                      </SW-DATA-DEF-PROPS-CONDITIONAL>
+                    </SW-DATA-DEF-PROPS-VARIANTS>
+                  </SW-DATA-DEF-PROPS>
+                </IMPLEMENTATION-DATA-TYPE-ELEMENT>
+                <IMPLEMENTATION-DATA-TYPE-ELEMENT UUID="3ca88e5b-378d-7a81-4502-5ade04716cd4">
+                  <SHORT-NAME>pCUVehicleOperationState</SHORT-NAME>
+                  <CATEGORY>VALUE</CATEGORY>
+                  <SW-DATA-DEF-PROPS>
+                    <SW-DATA-DEF-PROPS-VARIANTS>
+                      <SW-DATA-DEF-PROPS-CONDITIONAL>
+                        <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/uint8</BASE-TYPE-REF>
+                        <COMPU-METHOD-REF DEST="COMPU-METHOD">/DataTypes/CompuMethods/PCUVehiclOperationStateType</COMPU-METHOD-REF>
+                        <DATA-CONSTR-REF DEST="DATA-CONSTR">/DataTypes/DataConstraints/PCUVehiclOperationStateconst</DATA-CONSTR-REF>
+                      </SW-DATA-DEF-PROPS-CONDITIONAL>
+                    </SW-DATA-DEF-PROPS-VARIANTS>
+                  </SW-DATA-DEF-PROPS>
+                </IMPLEMENTATION-DATA-TYPE-ELEMENT>
+                <IMPLEMENTATION-DATA-TYPE-ELEMENT UUID="c2169b97-dc46-e044-3321-c64f21167913">
+                  <SHORT-NAME>propSysAsta</SHORT-NAME>
+                  <CATEGORY>VALUE</CATEGORY>
+                  <SW-DATA-DEF-PROPS>
+                    <SW-DATA-DEF-PROPS-VARIANTS>
+                      <SW-DATA-DEF-PROPS-CONDITIONAL>
+                        <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/uint8</BASE-TYPE-REF>
+                        <COMPU-METHOD-REF DEST="COMPU-METHOD">/DataTypes/CompuMethods/PropSysAStaType</COMPU-METHOD-REF>
+                        <DATA-CONSTR-REF DEST="DATA-CONSTR">/DataTypes/DataConstraints/PropSysAStaconst</DATA-CONSTR-REF>
+                      </SW-DATA-DEF-PROPS-CONDITIONAL>
+                    </SW-DATA-DEF-PROPS-VARIANTS>
+                  </SW-DATA-DEF-PROPS>
+                </IMPLEMENTATION-DATA-TYPE-ELEMENT>
+                <IMPLEMENTATION-DATA-TYPE-ELEMENT UUID="abd1b680-9d67-e99f-61cb-20508f663522">
+                  <SHORT-NAME>vehSpd</SHORT-NAME>
+                  <CATEGORY>VALUE</CATEGORY>
+                  <SW-DATA-DEF-PROPS>
+                    <SW-DATA-DEF-PROPS-VARIANTS>
+                      <SW-DATA-DEF-PROPS-CONDITIONAL>
+                        <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/float32</BASE-TYPE-REF>
+                        <SW-CALIBRATION-ACCESS>READ-ONLY</SW-CALIBRATION-ACCESS>
+                      </SW-DATA-DEF-PROPS-CONDITIONAL>
+                    </SW-DATA-DEF-PROPS-VARIANTS>
+                  </SW-DATA-DEF-PROPS>
+                </IMPLEMENTATION-DATA-TYPE-ELEMENT>
+                <IMPLEMENTATION-DATA-TYPE-ELEMENT UUID="7b305a47-49ef-42db-6367-13abdb337f9c">
+                  <SHORT-NAME>vehSpdValid</SHORT-NAME>
+                  <CATEGORY>VALUE</CATEGORY>
+                  <SW-DATA-DEF-PROPS>
+                    <SW-DATA-DEF-PROPS-VARIANTS>
+                      <SW-DATA-DEF-PROPS-CONDITIONAL>
+                        <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/uint8</BASE-TYPE-REF>
+                        <COMPU-METHOD-REF DEST="COMPU-METHOD">/DataTypes/CompuMethods/VehSpdValidType</COMPU-METHOD-REF>
+                        <DATA-CONSTR-REF DEST="DATA-CONSTR">/DataTypes/DataConstraints/VehSpdValidconst</DATA-CONSTR-REF>
+                      </SW-DATA-DEF-PROPS-CONDITIONAL>
+                    </SW-DATA-DEF-PROPS-VARIANTS>
+                  </SW-DATA-DEF-PROPS>
+                </IMPLEMENTATION-DATA-TYPE-ELEMENT>
+              </SUB-ELEMENTS>
+              <SW-DATA-DEF-PROPS>
+                <SW-DATA-DEF-PROPS-VARIANTS>
+                  <SW-DATA-DEF-PROPS-CONDITIONAL>
+                    <SW-CALIBRATION-ACCESS>READ-ONLY</SW-CALIBRATION-ACCESS>
+                  </SW-DATA-DEF-PROPS-CONDITIONAL>
+                </SW-DATA-DEF-PROPS-VARIANTS>
+              </SW-DATA-DEF-PROPS>
+            </IMPLEMENTATION-DATA-TYPE-ELEMENT>
+          </SUB-ELEMENTS>
+          <TYPE-EMITTER>RTE</TYPE-EMITTER>
+        </IMPLEMENTATION-DATA-TYPE>
+        <IMPLEMENTATION-DATA-TYPE UUID="aa9750f6-54d9-d95e-d0f6-d014ae38bd6c">
+          <SHORT-NAME>PCUIVA50msStruct</SHORT-NAME>
+          <CATEGORY>STRUCTURE</CATEGORY>
+          <SW-DATA-DEF-PROPS>
+            <SW-DATA-DEF-PROPS-VARIANTS>
+              <SW-DATA-DEF-PROPS-CONDITIONAL>
+                <SW-CALIBRATION-ACCESS>READ-ONLY</SW-CALIBRATION-ACCESS>
+              </SW-DATA-DEF-PROPS-CONDITIONAL>
+            </SW-DATA-DEF-PROPS-VARIANTS>
+          </SW-DATA-DEF-PROPS>
+          <SUB-ELEMENTS>
+            <IMPLEMENTATION-DATA-TYPE-ELEMENT UUID="68f070b6-cec4-02e6-a9fe-f77264531790">
+              <SHORT-NAME>emsReqSensorInfo2</SHORT-NAME>
+              <CATEGORY>STRUCTURE</CATEGORY>
+              <SUB-ELEMENTS>
+                <IMPLEMENTATION-DATA-TYPE-ELEMENT UUID="0899063b-cfdb-0ff8-d962-267518ad0c6c">
+                  <SHORT-NAME>accelPdlPos</SHORT-NAME>
+                  <CATEGORY>VALUE</CATEGORY>
+                  <SW-DATA-DEF-PROPS>
+                    <SW-DATA-DEF-PROPS-VARIANTS>
+                      <SW-DATA-DEF-PROPS-CONDITIONAL>
+                        <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/float32</BASE-TYPE-REF>
+                        <SW-CALIBRATION-ACCESS>READ-ONLY</SW-CALIBRATION-ACCESS>
+                      </SW-DATA-DEF-PROPS-CONDITIONAL>
+                    </SW-DATA-DEF-PROPS-VARIANTS>
+                  </SW-DATA-DEF-PROPS>
+                </IMPLEMENTATION-DATA-TYPE-ELEMENT>
+                <IMPLEMENTATION-DATA-TYPE-ELEMENT UUID="d36f01f6-5f9c-b0c8-55f6-29a8e1d044ad">
+                  <SHORT-NAME>otsdTemp</SHORT-NAME>
+                  <CATEGORY>VALUE</CATEGORY>
+                  <SW-DATA-DEF-PROPS>
+                    <SW-DATA-DEF-PROPS-VARIANTS>
+                      <SW-DATA-DEF-PROPS-CONDITIONAL>
+                        <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/float32</BASE-TYPE-REF>
+                        <SW-CALIBRATION-ACCESS>READ-ONLY</SW-CALIBRATION-ACCESS>
+                      </SW-DATA-DEF-PROPS-CONDITIONAL>
+                    </SW-DATA-DEF-PROPS-VARIANTS>
+                  </SW-DATA-DEF-PROPS>
+                </IMPLEMENTATION-DATA-TYPE-ELEMENT>
+                <IMPLEMENTATION-DATA-TYPE-ELEMENT UUID="aeb6da11-e47f-263c-ac1a-7d3dc8104114">
+                  <SHORT-NAME>totalOdometer</SHORT-NAME>
+                  <CATEGORY>VALUE</CATEGORY>
+                  <SW-DATA-DEF-PROPS>
+                    <SW-DATA-DEF-PROPS-VARIANTS>
+                      <SW-DATA-DEF-PROPS-CONDITIONAL>
+                        <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/uint32</BASE-TYPE-REF>
+                        <SW-CALIBRATION-ACCESS>READ-ONLY</SW-CALIBRATION-ACCESS>
+                      </SW-DATA-DEF-PROPS-CONDITIONAL>
+                    </SW-DATA-DEF-PROPS-VARIANTS>
+                  </SW-DATA-DEF-PROPS>
+                </IMPLEMENTATION-DATA-TYPE-ELEMENT>
+              </SUB-ELEMENTS>
+              <SW-DATA-DEF-PROPS>
+                <SW-DATA-DEF-PROPS-VARIANTS>
+                  <SW-DATA-DEF-PROPS-CONDITIONAL>
+                    <SW-CALIBRATION-ACCESS>READ-ONLY</SW-CALIBRATION-ACCESS>
+                  </SW-DATA-DEF-PROPS-CONDITIONAL>
+                </SW-DATA-DEF-PROPS-VARIANTS>
+              </SW-DATA-DEF-PROPS>
+            </IMPLEMENTATION-DATA-TYPE-ELEMENT>
+          </SUB-ELEMENTS>
+          <TYPE-EMITTER>RTE</TYPE-EMITTER>
+        </IMPLEMENTATION-DATA-TYPE>
         <IMPLEMENTATION-DATA-TYPE UUID="4b91cf9c-26af-5051-0b79-f9db90e8cfc0">
           <SHORT-NAME>RMCUZALeft10msStruct</SHORT-NAME>
           <CATEGORY>STRUCTURE</CATEGORY>
@@ -234,7 +593,6 @@
                     <SW-DATA-DEF-PROPS-VARIANTS>
                       <SW-DATA-DEF-PROPS-CONDITIONAL>
                         <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/uint8</BASE-TYPE-REF>
-                        <SW-CALIBRATION-ACCESS>READ-ONLY</SW-CALIBRATION-ACCESS>
                         <COMPU-METHOD-REF DEST="COMPU-METHOD">/DataTypes/CompuMethods/RMCUActInputCurrentVType</COMPU-METHOD-REF>
                         <DATA-CONSTR-REF DEST="DATA-CONSTR">/DataTypes/DataConstraints/RMCUActInputCurrentVconst</DATA-CONSTR-REF>
                       </SW-DATA-DEF-PROPS-CONDITIONAL>
@@ -260,7 +618,6 @@
                     <SW-DATA-DEF-PROPS-VARIANTS>
                       <SW-DATA-DEF-PROPS-CONDITIONAL>
                         <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/uint8</BASE-TYPE-REF>
-                        <SW-CALIBRATION-ACCESS>READ-ONLY</SW-CALIBRATION-ACCESS>
                         <COMPU-METHOD-REF DEST="COMPU-METHOD">/DataTypes/CompuMethods/RMCUActInputVoltVType</COMPU-METHOD-REF>
                         <DATA-CONSTR-REF DEST="DATA-CONSTR">/DataTypes/DataConstraints/RMCUActInputVoltVconst</DATA-CONSTR-REF>
                       </SW-DATA-DEF-PROPS-CONDITIONAL>
@@ -315,6 +672,13 @@
               <BASE-TYPE-ENCODING>IEEE754</BASE-TYPE-ENCODING>
               <NATIVE-DECLARATION>float32</NATIVE-DECLARATION>
             </SW-BASE-TYPE>
+            <SW-BASE-TYPE UUID="733a9a5c-3990-58d9-57bb-67dd6c66c74a">
+              <SHORT-NAME>uint32</SHORT-NAME>
+              <CATEGORY>FIXED_LENGTH</CATEGORY>
+              <BASE-TYPE-SIZE>32</BASE-TYPE-SIZE>
+              <BASE-TYPE-ENCODING>NONE</BASE-TYPE-ENCODING>
+              <NATIVE-DECLARATION>uint32</NATIVE-DECLARATION>
+            </SW-BASE-TYPE>
             <SW-BASE-TYPE UUID="67d919bd-3ed1-c0aa-1aa6-5548192751e7">
               <SHORT-NAME>uint8</SHORT-NAME>
               <CATEGORY>FIXED_LENGTH</CATEGORY>
@@ -327,6 +691,286 @@
         <AR-PACKAGE UUID="7c002e93-1a1f-2d3c-91f0-86bdd595bf42">
           <SHORT-NAME>CompuMethods</SHORT-NAME>
           <ELEMENTS>
+            <COMPU-METHOD UUID="2d28bf68-d51b-10d3-ec5e-ab58da2a0cd1">
+              <SHORT-NAME>CrashOtptStsType</SHORT-NAME>
+              <CATEGORY>TEXTTABLE</CATEGORY>
+              <COMPU-INTERNAL-TO-PHYS>
+                <COMPU-SCALES>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">0</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">0</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>CRASH_OTPT_STS_NO_EVENT</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_1</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">1</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">1</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>CRASH_OTPT_STS_CRASH_DETECTED</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                </COMPU-SCALES>
+              </COMPU-INTERNAL-TO-PHYS>
+            </COMPU-METHOD>
+            <COMPU-METHOD UUID="415f4541-3760-0905-d028-6714310b8d6c">
+              <SHORT-NAME>PCUBCMRemoteFunctionStateType</SHORT-NAME>
+              <CATEGORY>TEXTTABLE</CATEGORY>
+              <COMPU-INTERNAL-TO-PHYS>
+                <COMPU-SCALES>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">0</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">0</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCUBCM_REMOTE_FUNCTION_STATE_NORMAL_FUNCTION</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_1</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">1</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">1</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCUBCM_REMOTE_FUNCTION_STATE_REMOTE_FUNCTION</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_2</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">2</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">2</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCUBCM_REMOTE_FUNCTION_STATE_RESERVED</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_3</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">3</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">3</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCUBCM_REMOTE_FUNCTION_STATE_SIGNAL_INVALID</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                </COMPU-SCALES>
+              </COMPU-INTERNAL-TO-PHYS>
+            </COMPU-METHOD>
+            <COMPU-METHOD UUID="b24d94ed-382b-c48e-cb47-784b082c2ea3">
+              <SHORT-NAME>PCUCVCACTGearType</SHORT-NAME>
+              <CATEGORY>TEXTTABLE</CATEGORY>
+              <COMPU-INTERNAL-TO-PHYS>
+                <COMPU-SCALES>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">0</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">0</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCUCVCACT_GEAR_P</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_1</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">1</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">1</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCUCVCACT_GEAR_R</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_2</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">2</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">2</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCUCVCACT_GEAR_N</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_3</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">3</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">3</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCUCVCACT_GEAR_D</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_4</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">4</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">4</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCUCVCACT_GEAR_RESERVED</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_5</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">5</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">5</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCUCVCACT_GEAR_RESERVED_2</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_6</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">6</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">6</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCUCVCACT_GEAR_RESERVED_3</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_7</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">7</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">7</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCUCVCACT_GEAR_FAULT</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                </COMPU-SCALES>
+              </COMPU-INTERNAL-TO-PHYS>
+            </COMPU-METHOD>
+            <COMPU-METHOD UUID="d8a15928-bdfa-c1cb-dfc6-948348858424">
+              <SHORT-NAME>PCUCVCACTGearValidType</SHORT-NAME>
+              <CATEGORY>TEXTTABLE</CATEGORY>
+              <COMPU-INTERNAL-TO-PHYS>
+                <COMPU-SCALES>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">0</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">0</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCUCVCACT_GEAR_VALID_VALID</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_1</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">1</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">1</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCUCVCACT_GEAR_VALID_INVALID</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                </COMPU-SCALES>
+              </COMPU-INTERNAL-TO-PHYS>
+            </COMPU-METHOD>
+            <COMPU-METHOD UUID="8e84e03e-d820-7ca5-d286-3ea296122989">
+              <SHORT-NAME>PCUVehiclOperationStateType</SHORT-NAME>
+              <CATEGORY>TEXTTABLE</CATEGORY>
+              <COMPU-INTERNAL-TO-PHYS>
+                <COMPU-SCALES>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">0</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">0</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCU_VEHICL_OPERATION_STATE_OFF_COMFORT_ENABLE</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_1</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">1</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">1</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCU_VEHICL_OPERATION_STATE_ACC_PARK</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_2</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">2</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">2</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCU_VEHICL_OPERATION_STATE_ON_DRIVER_PRESENT</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_3</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">3</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">3</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCU_VEHICL_OPERATION_STATE_ENGINE_START_E_MOTOR_RUNNING</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_4</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">4</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">4</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCU_VEHICL_OPERATION_STATE_SW_UPDATE_OTA</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_5</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">5</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">5</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCU_VEHICL_OPERATION_STATE_RESERVED</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_6</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">6</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">6</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCU_VEHICL_OPERATION_STATE_RESERVED_2</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_7</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">7</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">7</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PCU_VEHICL_OPERATION_STATE_SIGNAL_INVALID</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                </COMPU-SCALES>
+              </COMPU-INTERNAL-TO-PHYS>
+            </COMPU-METHOD>
+            <COMPU-METHOD UUID="d46ea07f-c6f3-d593-83da-c265f77cf5e2">
+              <SHORT-NAME>PropSysAStaType</SHORT-NAME>
+              <CATEGORY>TEXTTABLE</CATEGORY>
+              <COMPU-INTERNAL-TO-PHYS>
+                <COMPU-SCALES>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">0</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">0</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PROP_SYS_A_STA_NOT_READY</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_1</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">1</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">1</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>PROP_SYS_A_STA_READY</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                </COMPU-SCALES>
+              </COMPU-INTERNAL-TO-PHYS>
+            </COMPU-METHOD>
+            <COMPU-METHOD UUID="41a7a448-3ff0-f5aa-09f4-96ae2bca3f4d">
+              <SHORT-NAME>VehSpdValidType</SHORT-NAME>
+              <CATEGORY>TEXTTABLE</CATEGORY>
+              <COMPU-INTERNAL-TO-PHYS>
+                <COMPU-SCALES>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">0</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">0</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>VEH_SPD_VALID_VALID</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE>
+                    <SHORT-LABEL>CompuScale_1</SHORT-LABEL>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">1</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">1</UPPER-LIMIT>
+                    <COMPU-CONST>
+                      <VT>VEH_SPD_VALID_INVALID</VT>
+                    </COMPU-CONST>
+                  </COMPU-SCALE>
+                </COMPU-SCALES>
+              </COMPU-INTERNAL-TO-PHYS>
+            </COMPU-METHOD>
             <COMPU-METHOD UUID="d17b163a-7d4c-355f-764f-d164d5976122">
               <SHORT-NAME>RMCUActInputCurrentVType</SHORT-NAME>
               <CATEGORY>TEXTTABLE</CATEGORY>
@@ -380,6 +1024,83 @@
         <AR-PACKAGE UUID="2fb2a8a7-ce46-28f5-ebd2-d843fb19dfde">
           <SHORT-NAME>DataConstraints</SHORT-NAME>
           <ELEMENTS>
+            <DATA-CONSTR UUID="84f843af-ca3d-60d5-2dee-0659d951fbcb">
+              <SHORT-NAME>CrashOtptStsconst</SHORT-NAME>
+              <DATA-CONSTR-RULES>
+                <DATA-CONSTR-RULE>
+                  <INTERNAL-CONSTRS>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">0</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">255</UPPER-LIMIT>
+                  </INTERNAL-CONSTRS>
+                </DATA-CONSTR-RULE>
+              </DATA-CONSTR-RULES>
+            </DATA-CONSTR>
+            <DATA-CONSTR UUID="d65e1521-5b00-7ceb-cd7f-ec405d19dbac">
+              <SHORT-NAME>PCUBCMRemoteFunctionStateconst</SHORT-NAME>
+              <DATA-CONSTR-RULES>
+                <DATA-CONSTR-RULE>
+                  <INTERNAL-CONSTRS>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">0</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">255</UPPER-LIMIT>
+                  </INTERNAL-CONSTRS>
+                </DATA-CONSTR-RULE>
+              </DATA-CONSTR-RULES>
+            </DATA-CONSTR>
+            <DATA-CONSTR UUID="eb99cc46-c0e2-ed61-f130-baa1c0e48f50">
+              <SHORT-NAME>PCUCVCACTGearconst</SHORT-NAME>
+              <DATA-CONSTR-RULES>
+                <DATA-CONSTR-RULE>
+                  <INTERNAL-CONSTRS>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">0</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">255</UPPER-LIMIT>
+                  </INTERNAL-CONSTRS>
+                </DATA-CONSTR-RULE>
+              </DATA-CONSTR-RULES>
+            </DATA-CONSTR>
+            <DATA-CONSTR UUID="3d5e3bb8-1915-aee3-0c34-a8d7932434ab">
+              <SHORT-NAME>PCUCVCACTGearValidconst</SHORT-NAME>
+              <DATA-CONSTR-RULES>
+                <DATA-CONSTR-RULE>
+                  <INTERNAL-CONSTRS>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">0</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">255</UPPER-LIMIT>
+                  </INTERNAL-CONSTRS>
+                </DATA-CONSTR-RULE>
+              </DATA-CONSTR-RULES>
+            </DATA-CONSTR>
+            <DATA-CONSTR UUID="9d6139e1-7df4-073f-a183-969b4beca1c3">
+              <SHORT-NAME>PCUVehiclOperationStateconst</SHORT-NAME>
+              <DATA-CONSTR-RULES>
+                <DATA-CONSTR-RULE>
+                  <INTERNAL-CONSTRS>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">0</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">255</UPPER-LIMIT>
+                  </INTERNAL-CONSTRS>
+                </DATA-CONSTR-RULE>
+              </DATA-CONSTR-RULES>
+            </DATA-CONSTR>
+            <DATA-CONSTR UUID="bd27130d-c47f-fb68-e058-4600fdd8ccc5">
+              <SHORT-NAME>PropSysAStaconst</SHORT-NAME>
+              <DATA-CONSTR-RULES>
+                <DATA-CONSTR-RULE>
+                  <INTERNAL-CONSTRS>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">0</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">255</UPPER-LIMIT>
+                  </INTERNAL-CONSTRS>
+                </DATA-CONSTR-RULE>
+              </DATA-CONSTR-RULES>
+            </DATA-CONSTR>
+            <DATA-CONSTR UUID="403cabc1-a565-cf71-72aa-130f1ac9aeab">
+              <SHORT-NAME>VehSpdValidconst</SHORT-NAME>
+              <DATA-CONSTR-RULES>
+                <DATA-CONSTR-RULE>
+                  <INTERNAL-CONSTRS>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED">0</LOWER-LIMIT>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED">255</UPPER-LIMIT>
+                  </INTERNAL-CONSTRS>
+                </DATA-CONSTR-RULE>
+              </DATA-CONSTR-RULES>
+            </DATA-CONSTR>
             <DATA-CONSTR UUID="64f2a9f9-7ece-8d36-6671-be7fcbd7b501">
               <SHORT-NAME>RMCUActInputCurrentVconst</SHORT-NAME>
               <DATA-CONSTR-RULES>
@@ -427,6 +1148,20 @@
                         </COMMUNICATION-CONNECTOR-REF-CONDITIONAL>
                       </COMM-CONNECTORS>
                       <I-SIGNAL-TRIGGERINGS>
+                        <I-SIGNAL-TRIGGERING UUID="156c4049-8df6-b95e-8f73-0b35a46c345c">
+                          <SHORT-NAME>ST_PCUIVA10msEvent</SHORT-NAME>
+                          <I-SIGNAL-PORT-REFS>
+                            <I-SIGNAL-PORT-REF DEST="I-SIGNAL-PORT">/Topology/HardwareComponents/ZAFL/CN_ZAFL_EthernetCluster/SP_PCUIVA10msEvent</I-SIGNAL-PORT-REF>
+                          </I-SIGNAL-PORT-REFS>
+                          <I-SIGNAL-REF DEST="I-SIGNAL">/Communication/Signals/sig_PCUIVA10msEvent</I-SIGNAL-REF>
+                        </I-SIGNAL-TRIGGERING>
+                        <I-SIGNAL-TRIGGERING UUID="06d33271-c361-0701-e1ae-b161628de6d5">
+                          <SHORT-NAME>ST_PCUIVA50msEvent</SHORT-NAME>
+                          <I-SIGNAL-PORT-REFS>
+                            <I-SIGNAL-PORT-REF DEST="I-SIGNAL-PORT">/Topology/HardwareComponents/ZAFL/CN_ZAFL_EthernetCluster/SP_PCUIVA50msEvent</I-SIGNAL-PORT-REF>
+                          </I-SIGNAL-PORT-REFS>
+                          <I-SIGNAL-REF DEST="I-SIGNAL">/Communication/Signals/sig_PCUIVA50msEvent</I-SIGNAL-REF>
+                        </I-SIGNAL-TRIGGERING>
                         <I-SIGNAL-TRIGGERING UUID="a67a7236-a365-4412-c7e6-2d5d6fb9cac9">
                           <SHORT-NAME>ST_RMCUZALeft10msEvent</SHORT-NAME>
                           <I-SIGNAL-PORT-REFS>
@@ -436,6 +1171,30 @@
                         </I-SIGNAL-TRIGGERING>
                       </I-SIGNAL-TRIGGERINGS>
                       <PDU-TRIGGERINGS>
+                        <PDU-TRIGGERING UUID="2f310d63-3065-c7ca-781b-1d5da4f13691">
+                          <SHORT-NAME>PT_PCUIVA10msEvent</SHORT-NAME>
+                          <I-PDU-PORT-REFS>
+                            <I-PDU-PORT-REF DEST="I-PDU-PORT">/Topology/HardwareComponents/ZAFL/CN_ZAFL_EthernetCluster/PP_PCUIVA10msEvent</I-PDU-PORT-REF>
+                          </I-PDU-PORT-REFS>
+                          <I-PDU-REF DEST="I-SIGNAL-I-PDU">/Communication/PDUs/pdu_PCUIVA10msEvent</I-PDU-REF>
+                          <I-SIGNAL-TRIGGERINGS>
+                            <I-SIGNAL-TRIGGERING-REF-CONDITIONAL>
+                              <I-SIGNAL-TRIGGERING-REF DEST="I-SIGNAL-TRIGGERING">/Topology/Clusters/EthernetCluster/ChannelCommunication/ST_PCUIVA10msEvent</I-SIGNAL-TRIGGERING-REF>
+                            </I-SIGNAL-TRIGGERING-REF-CONDITIONAL>
+                          </I-SIGNAL-TRIGGERINGS>
+                        </PDU-TRIGGERING>
+                        <PDU-TRIGGERING UUID="2764c14e-6ce1-c86f-c91f-91090c13be12">
+                          <SHORT-NAME>PT_PCUIVA50msEvent</SHORT-NAME>
+                          <I-PDU-PORT-REFS>
+                            <I-PDU-PORT-REF DEST="I-PDU-PORT">/Topology/HardwareComponents/ZAFL/CN_ZAFL_EthernetCluster/PP_PCUIVA50msEvent</I-PDU-PORT-REF>
+                          </I-PDU-PORT-REFS>
+                          <I-PDU-REF DEST="I-SIGNAL-I-PDU">/Communication/PDUs/pdu_PCUIVA50msEvent</I-PDU-REF>
+                          <I-SIGNAL-TRIGGERINGS>
+                            <I-SIGNAL-TRIGGERING-REF-CONDITIONAL>
+                              <I-SIGNAL-TRIGGERING-REF DEST="I-SIGNAL-TRIGGERING">/Topology/Clusters/EthernetCluster/ChannelCommunication/ST_PCUIVA50msEvent</I-SIGNAL-TRIGGERING-REF>
+                            </I-SIGNAL-TRIGGERING-REF-CONDITIONAL>
+                          </I-SIGNAL-TRIGGERINGS>
+                        </PDU-TRIGGERING>
                         <PDU-TRIGGERING UUID="b0b5c460-7b95-0853-bc87-314a5fcc6370">
                           <SHORT-NAME>PT_RMCUZALeft10msEvent</SHORT-NAME>
                           <I-PDU-PORT-REFS>
@@ -455,19 +1214,19 @@
                           </I-PDU-PORT-REFS>
                           <I-PDU-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Rx_Multicast</I-PDU-REF>
                         </PDU-TRIGGERING>
-                        <PDU-TRIGGERING UUID="9d6f0d62-188e-da8b-8d27-9b968fe37774">
-                          <SHORT-NAME>PT_SD_Ctrl_RMCU_Rx</SHORT-NAME>
+                        <PDU-TRIGGERING UUID="28575083-e16e-40b3-c37c-443ae72705bf">
+                          <SHORT-NAME>PT_SD_Ctrl_PCU_Rx</SHORT-NAME>
                           <I-PDU-PORT-REFS>
-                            <I-PDU-PORT-REF DEST="I-PDU-PORT">/Topology/HardwareComponents/ZAFL/CN_ZAFL_EthernetCluster/SD_Ctrl_Rx_RMCU_CN</I-PDU-PORT-REF>
+                            <I-PDU-PORT-REF DEST="I-PDU-PORT">/Topology/HardwareComponents/ZAFL/CN_ZAFL_EthernetCluster/SD_Ctrl_Rx_PCU_CN</I-PDU-PORT-REF>
                           </I-PDU-PORT-REFS>
-                          <I-PDU-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Rx_RMCU</I-PDU-REF>
+                          <I-PDU-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Rx_PCU</I-PDU-REF>
                         </PDU-TRIGGERING>
-                        <PDU-TRIGGERING UUID="4b2ab476-e8c2-c9fd-1699-1fd33a52d2ee">
-                          <SHORT-NAME>PT_SD_Ctrl_RMCU_Tx</SHORT-NAME>
+                        <PDU-TRIGGERING UUID="6cbbc768-3eab-1cef-f82c-f84b162db209">
+                          <SHORT-NAME>PT_SD_Ctrl_PCU_Tx</SHORT-NAME>
                           <I-PDU-PORT-REFS>
-                            <I-PDU-PORT-REF DEST="I-PDU-PORT">/Topology/HardwareComponents/ZAFL/CN_ZAFL_EthernetCluster/SD_Ctrl_Tx_RMCU_CN</I-PDU-PORT-REF>
+                            <I-PDU-PORT-REF DEST="I-PDU-PORT">/Topology/HardwareComponents/ZAFL/CN_ZAFL_EthernetCluster/SD_Ctrl_Tx_PCU_CN</I-PDU-PORT-REF>
                           </I-PDU-PORT-REFS>
-                          <I-PDU-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Tx_RMCU</I-PDU-REF>
+                          <I-PDU-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Tx_PCU</I-PDU-REF>
                         </PDU-TRIGGERING>
                       </PDU-TRIGGERINGS>
                       <NETWORK-ENDPOINTS>
@@ -491,8 +1250,8 @@
                             </MAC-MULTICAST-CONFIGURATION>
                           </NETWORK-ENDPOINT-ADDRESSES>
                         </NETWORK-ENDPOINT>
-                        <NETWORK-ENDPOINT UUID="77356c7d-3e28-2310-4f21-f100fe4d7cc1">
-                          <SHORT-NAME>NEP_RMCU</SHORT-NAME>
+                        <NETWORK-ENDPOINT UUID="746c0367-10c5-8d0d-c8a8-4da663051318">
+                          <SHORT-NAME>NEP_PCU</SHORT-NAME>
                           <NETWORK-ENDPOINT-ADDRESSES>
                             <IPV-4-CONFIGURATION>
                               <IPV-4-ADDRESS>192.168.1.2</IPV-4-ADDRESS>
@@ -505,7 +1264,7 @@
                           <SHORT-NAME>NEP_IVA</SHORT-NAME>
                           <NETWORK-ENDPOINT-ADDRESSES>
                             <IPV-4-CONFIGURATION>
-                              <IPV-4-ADDRESS>ANY</IPV-4-ADDRESS>
+                              <IPV-4-ADDRESS>192.168.1.1</IPV-4-ADDRESS>
                               <IPV-4-ADDRESS-SOURCE>FIXED</IPV-4-ADDRESS-SOURCE>
                               <NETWORK-MASK>255.255.255.0</NETWORK-MASK>
                             </IPV-4-CONFIGURATION>
@@ -514,14 +1273,36 @@
                       </NETWORK-ENDPOINTS>
                       <SO-AD-CONFIG>
                         <CONNECTION-BUNDLES>
-                          <SOCKET-CONNECTION-BUNDLE UUID="2b6b105e-fd3b-7667-910e-26aab2befbdb">
+                          <SOCKET-CONNECTION-BUNDLE>
+                            <SHORT-NAME>SCB_PCU</SHORT-NAME>
+                            <BUNDLED-CONNECTIONS>
+                              <SOCKET-CONNECTION>
+                                <CLIENT-PORT-REF DEST="SOCKET-ADDRESS">/Topology/Clusters/EthernetCluster/ChannelCommunication/SA_IVA_PCU</CLIENT-PORT-REF>
+                              </SOCKET-CONNECTION>
+                            </BUNDLED-CONNECTIONS>
+                            <PDUS>
+                              <SOCKET-CONNECTION-IPDU-IDENTIFIER>
+                                <HEADER-ID>1343062017</HEADER-ID>
+                                <PDU-TRIGGERING-REF DEST="PDU-TRIGGERING">/Topology/Clusters/EthernetCluster/ChannelCommunication/PT_PCUIVA10msEvent</PDU-TRIGGERING-REF>
+                                <ROUTING-GROUP-REFS>
+                                  <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_P_EventGroup</ROUTING-GROUP-REF>
+                                </ROUTING-GROUP-REFS>
+                              </SOCKET-CONNECTION-IPDU-IDENTIFIER>
+                              <SOCKET-CONNECTION-IPDU-IDENTIFIER>
+                                <HEADER-ID>1343062018</HEADER-ID>
+                                <PDU-TRIGGERING-REF DEST="PDU-TRIGGERING">/Topology/Clusters/EthernetCluster/ChannelCommunication/PT_PCUIVA50msEvent</PDU-TRIGGERING-REF>
+                                <ROUTING-GROUP-REFS>
+                                  <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_P_EventGroup</ROUTING-GROUP-REF>
+                                </ROUTING-GROUP-REFS>
+                              </SOCKET-CONNECTION-IPDU-IDENTIFIER>
+                            </PDUS>
+                            <SERVER-PORT-REF DEST="SOCKET-ADDRESS">/Topology/Clusters/EthernetCluster/ChannelCommunication/SA_PCU</SERVER-PORT-REF>
+                          </SOCKET-CONNECTION-BUNDLE>
+                          <SOCKET-CONNECTION-BUNDLE>
                             <SHORT-NAME>SCB_RMCU</SHORT-NAME>
                             <BUNDLED-CONNECTIONS>
                               <SOCKET-CONNECTION>
-                                <CLIENT-IP-ADDR-FROM-CONNECTION-REQUEST>false</CLIENT-IP-ADDR-FROM-CONNECTION-REQUEST>
-                                <CLIENT-PORT-FROM-CONNECTION-REQUEST>false</CLIENT-PORT-FROM-CONNECTION-REQUEST>
                                 <CLIENT-PORT-REF DEST="SOCKET-ADDRESS">/Topology/Clusters/EthernetCluster/ChannelCommunication/SA_RMCU</CLIENT-PORT-REF>
-                                <SHORT-LABEL>SC_RMCU</SHORT-LABEL>
                               </SOCKET-CONNECTION>
                             </BUNDLED-CONNECTIONS>
                             <PDUS>
@@ -535,8 +1316,8 @@
                             </PDUS>
                             <SERVER-PORT-REF DEST="SOCKET-ADDRESS">/Topology/Clusters/EthernetCluster/ChannelCommunication/SA_IVA_RMCU</SERVER-PORT-REF>
                           </SOCKET-CONNECTION-BUNDLE>
-                          <SOCKET-CONNECTION-BUNDLE UUID="a70536ba-285e-5efa-1200-82bb03fc84bd">
-                            <SHORT-NAME>SD_SCB_RMCU</SHORT-NAME>
+                          <SOCKET-CONNECTION-BUNDLE>
+                            <SHORT-NAME>SD_SCB_PCU</SHORT-NAME>
                             <BUNDLED-CONNECTIONS>
                               <SOCKET-CONNECTION>
                                 <CLIENT-IP-ADDR-FROM-CONNECTION-REQUEST>true</CLIENT-IP-ADDR-FROM-CONNECTION-REQUEST>
@@ -545,31 +1326,28 @@
                                 <PDUS>
                                   <SOCKET-CONNECTION-IPDU-IDENTIFIER>
                                     <HEADER-ID>4294934784</HEADER-ID>
-                                    <PDU-TRIGGERING-REF DEST="PDU-TRIGGERING">/Topology/Clusters/EthernetCluster/ChannelCommunication/PT_SD_Ctrl_RMCU_Rx</PDU-TRIGGERING-REF>
+                                    <PDU-TRIGGERING-REF DEST="PDU-TRIGGERING">/Topology/Clusters/EthernetCluster/ChannelCommunication/PT_SD_Ctrl_PCU_Rx</PDU-TRIGGERING-REF>
                                   </SOCKET-CONNECTION-IPDU-IDENTIFIER>
                                   <SOCKET-CONNECTION-IPDU-IDENTIFIER>
                                     <HEADER-ID>4294934784</HEADER-ID>
-                                    <PDU-TRIGGERING-REF DEST="PDU-TRIGGERING">/Topology/Clusters/EthernetCluster/ChannelCommunication/PT_SD_Ctrl_RMCU_Tx</PDU-TRIGGERING-REF>
+                                    <PDU-TRIGGERING-REF DEST="PDU-TRIGGERING">/Topology/Clusters/EthernetCluster/ChannelCommunication/PT_SD_Ctrl_PCU_Tx</PDU-TRIGGERING-REF>
                                   </SOCKET-CONNECTION-IPDU-IDENTIFIER>
                                 </PDUS>
-                                <SHORT-LABEL>SD_SCB_RMCU_SC</SHORT-LABEL>
+                                <SHORT-LABEL>SD_SCB_PCU_SC</SHORT-LABEL>
                               </SOCKET-CONNECTION>
                             </BUNDLED-CONNECTIONS>
-                            <SERVER-PORT-REF DEST="SOCKET-ADDRESS">/Topology/Clusters/EthernetCluster/ChannelCommunication/SD_SA_RMCU</SERVER-PORT-REF>
+                            <SERVER-PORT-REF DEST="SOCKET-ADDRESS">/Topology/Clusters/EthernetCluster/ChannelCommunication/SD_SA_PCU</SERVER-PORT-REF>
                           </SOCKET-CONNECTION-BUNDLE>
-                          <SOCKET-CONNECTION-BUNDLE UUID="0ca8b566-9c1e-49eb-794c-0406b5fd1714">
+                          <SOCKET-CONNECTION-BUNDLE>
                             <SHORT-NAME>SD_SCB_IVA</SHORT-NAME>
                             <BUNDLED-CONNECTIONS>
                               <SOCKET-CONNECTION>
-                                <CLIENT-IP-ADDR-FROM-CONNECTION-REQUEST>true</CLIENT-IP-ADDR-FROM-CONNECTION-REQUEST>
-                                <CLIENT-PORT-FROM-CONNECTION-REQUEST>true</CLIENT-PORT-FROM-CONNECTION-REQUEST>
                                 <CLIENT-PORT-REF DEST="SOCKET-ADDRESS">/Topology/Clusters/EthernetCluster/ChannelCommunication/SD_SA_ANY</CLIENT-PORT-REF>
-                                <SHORT-LABEL>SD_SCB_IVA_SC</SHORT-LABEL>
                               </SOCKET-CONNECTION>
                             </BUNDLED-CONNECTIONS>
                             <SERVER-PORT-REF DEST="SOCKET-ADDRESS">/Topology/Clusters/EthernetCluster/ChannelCommunication/SD_SA_IVA</SERVER-PORT-REF>
                           </SOCKET-CONNECTION-BUNDLE>
-                          <SOCKET-CONNECTION-BUNDLE UUID="43fc87e9-8720-c710-728a-f4787de48a70">
+                          <SOCKET-CONNECTION-BUNDLE>
                             <SHORT-NAME>SD_SCB_MC</SHORT-NAME>
                             <BUNDLED-CONNECTIONS>
                               <SOCKET-CONNECTION>
@@ -589,6 +1367,117 @@
                           </SOCKET-CONNECTION-BUNDLE>
                         </CONNECTION-BUNDLES>
                         <SOCKET-ADDRESSS>
+                          <SOCKET-ADDRESS UUID="295098fe-eb5c-8d35-b5fb-a6bed5efe95f">
+                            <SHORT-NAME>SA_PCU</SHORT-NAME>
+                            <APPLICATION-ENDPOINT UUID="808bb0d3-ea34-a4aa-f6b6-04ba2f8a4cc5">
+                              <SHORT-NAME>AEP_PCU</SHORT-NAME>
+                              <NETWORK-ENDPOINT-REF DEST="NETWORK-ENDPOINT">/Topology/Clusters/EthernetCluster/ChannelCommunication/NEP_PCU</NETWORK-ENDPOINT-REF>
+                              <PROVIDED-SERVICE-INSTANCES>
+                                <PROVIDED-SERVICE-INSTANCE UUID="b04d08e9-ca4e-a24f-390b-34378f38211b">
+                                  <SHORT-NAME>PSI_PCU</SHORT-NAME>
+                                  <ROUTING-GROUP-REFS>
+                                    <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_P_EventGroup</ROUTING-GROUP-REF>
+                                  </ROUTING-GROUP-REFS>
+                                  <EVENT-HANDLERS>
+                                    <EVENT-HANDLER>
+                                      <SHORT-NAME>EH_PCUIVAEvents</SHORT-NAME>
+                                      <CONSUMED-EVENT-GROUP-REFS>
+                                        <CONSUMED-EVENT-GROUP-REF DEST="CONSUMED-EVENT-GROUP">/Topology/Clusters/EthernetCluster/ChannelCommunication/SA_IVA_PCU/AEP_IVA_PCU/CSI_IVA_PCU/CEG_PCUIVAEvents</CONSUMED-EVENT-GROUP-REF>
+                                      </CONSUMED-EVENT-GROUP-REFS>
+                                      <MULTICAST-THRESHOLD>0</MULTICAST-THRESHOLD>
+                                      <ROUTING-GROUP-REFS>
+                                        <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_P_EventGroup</ROUTING-GROUP-REF>
+                                      </ROUTING-GROUP-REFS>
+                                      <SD-SERVER-CONFIG>
+                                        <REQUEST-RESPONSE-DELAY>
+                                          <MAX-VALUE>0.2</MAX-VALUE>
+                                          <MIN-VALUE>0.02</MIN-VALUE>
+                                        </REQUEST-RESPONSE-DELAY>
+                                        <TTL>3</TTL>
+                                      </SD-SERVER-CONFIG>
+                                    </EVENT-HANDLER>
+                                  </EVENT-HANDLERS>
+                                  <INSTANCE-IDENTIFIER>24589</INSTANCE-IDENTIFIER>
+                                  <SD-SERVER-CONFIG>
+                                    <INITIAL-OFFER-BEHAVIOR>
+                                      <INITIAL-DELAY-MAX-VALUE>0.05</INITIAL-DELAY-MAX-VALUE>
+                                      <INITIAL-DELAY-MIN-VALUE>0.05</INITIAL-DELAY-MIN-VALUE>
+                                      <INITIAL-REPETITIONS-BASE-DELAY>0.1</INITIAL-REPETITIONS-BASE-DELAY>
+                                      <INITIAL-REPETITIONS-MAX>3</INITIAL-REPETITIONS-MAX>
+                                    </INITIAL-OFFER-BEHAVIOR>
+                                    <OFFER-CYCLIC-DELAY>2</OFFER-CYCLIC-DELAY>
+                                    <REQUEST-RESPONSE-DELAY>
+                                      <MAX-VALUE>0.2</MAX-VALUE>
+                                      <MIN-VALUE>0.02</MIN-VALUE>
+                                    </REQUEST-RESPONSE-DELAY>
+                                    <SERVER-SERVICE-MAJOR-VERSION>1</SERVER-SERVICE-MAJOR-VERSION>
+                                    <SERVER-SERVICE-MINOR-VERSION>0</SERVER-SERVICE-MINOR-VERSION>
+                                    <TTL>3</TTL>
+                                  </SD-SERVER-CONFIG>
+                                  <SERVICE-IDENTIFIER>20493</SERVICE-IDENTIFIER>
+                                </PROVIDED-SERVICE-INSTANCE>
+                              </PROVIDED-SERVICE-INSTANCES>
+                              <TP-CONFIGURATION>
+                                <UDP-TP>
+                                  <UDP-TP-PORT>
+                                    <PORT-NUMBER>40131</PORT-NUMBER>
+                                  </UDP-TP-PORT>
+                                </UDP-TP>
+                              </TP-CONFIGURATION>
+                            </APPLICATION-ENDPOINT>
+                            <CONNECTOR-REF DEST="ETHERNET-COMMUNICATION-CONNECTOR">/Topology/HardwareComponents/ZAFL/CN_ZAFL_EthernetCluster</CONNECTOR-REF>
+                          </SOCKET-ADDRESS>
+                          <SOCKET-ADDRESS UUID="ab859be0-a1a8-354b-c779-f76c357eaf2c">
+                            <SHORT-NAME>SA_IVA_PCU</SHORT-NAME>
+                            <APPLICATION-ENDPOINT UUID="ee3eea1f-f918-40b2-d771-f2a2b3a515a6">
+                              <SHORT-NAME>AEP_IVA_PCU</SHORT-NAME>
+                              <CONSUMED-SERVICE-INSTANCES>
+                                <CONSUMED-SERVICE-INSTANCE UUID="0f83084e-1409-e167-6737-9050a3325fca">
+                                  <SHORT-NAME>CSI_IVA_PCU</SHORT-NAME>
+                                  <ROUTING-GROUP-REFS>
+                                    <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_P_EventGroup</ROUTING-GROUP-REF>
+                                  </ROUTING-GROUP-REFS>
+                                  <CONSUMED-EVENT-GROUPS>
+                                    <CONSUMED-EVENT-GROUP UUID="249f00c5-7320-41ef-27bf-396c0a76dd99">
+                                      <SHORT-NAME>CEG_PCUIVAEvents</SHORT-NAME>
+                                      <APPLICATION-ENDPOINT-REF DEST="APPLICATION-ENDPOINT">/Topology/Clusters/EthernetCluster/ChannelCommunication/SA_IVA_PCU/AEP_IVA_PCU</APPLICATION-ENDPOINT-REF>
+                                      <EVENT-GROUP-IDENTIFIER>1</EVENT-GROUP-IDENTIFIER>
+                                      <ROUTING-GROUP-REFS>
+                                        <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_P_EventGroup</ROUTING-GROUP-REF>
+                                      </ROUTING-GROUP-REFS>
+                                      <SD-CLIENT-CONFIG>
+                                        <REQUEST-RESPONSE-DELAY>
+                                          <MAX-VALUE>0.2</MAX-VALUE>
+                                          <MIN-VALUE>0.02</MIN-VALUE>
+                                        </REQUEST-RESPONSE-DELAY>
+                                        <TTL>3</TTL>
+                                      </SD-CLIENT-CONFIG>
+                                    </CONSUMED-EVENT-GROUP>
+                                  </CONSUMED-EVENT-GROUPS>
+                                  <PROVIDED-SERVICE-INSTANCE-REF DEST="PROVIDED-SERVICE-INSTANCE">/Topology/Clusters/EthernetCluster/ChannelCommunication/SA_PCU/AEP_PCU/PSI_PCU</PROVIDED-SERVICE-INSTANCE-REF>
+                                  <SD-CLIENT-CONFIG>
+                                    <CLIENT-SERVICE-MAJOR-VERSION>1</CLIENT-SERVICE-MAJOR-VERSION>
+                                    <CLIENT-SERVICE-MINOR-VERSION>0</CLIENT-SERVICE-MINOR-VERSION>
+                                    <INITIAL-FIND-BEHAVIOR>
+                                      <INITIAL-DELAY-MAX-VALUE>0.05</INITIAL-DELAY-MAX-VALUE>
+                                      <INITIAL-DELAY-MIN-VALUE>0.05</INITIAL-DELAY-MIN-VALUE>
+                                      <INITIAL-REPETITIONS-BASE-DELAY>0.1</INITIAL-REPETITIONS-BASE-DELAY>
+                                      <INITIAL-REPETITIONS-MAX>3</INITIAL-REPETITIONS-MAX>
+                                    </INITIAL-FIND-BEHAVIOR>
+                                    <TTL>3</TTL>
+                                  </SD-CLIENT-CONFIG>
+                                </CONSUMED-SERVICE-INSTANCE>
+                              </CONSUMED-SERVICE-INSTANCES>
+                              <NETWORK-ENDPOINT-REF DEST="NETWORK-ENDPOINT">/Topology/Clusters/EthernetCluster/ChannelCommunication/NEP_IVA</NETWORK-ENDPOINT-REF>
+                              <TP-CONFIGURATION>
+                                <UDP-TP>
+                                  <UDP-TP-PORT>
+                                    <PORT-NUMBER>40131</PORT-NUMBER>
+                                  </UDP-TP-PORT>
+                                </UDP-TP>
+                              </TP-CONFIGURATION>
+                            </APPLICATION-ENDPOINT>
+                          </SOCKET-ADDRESS>
                           <SOCKET-ADDRESS UUID="b07b1aff-f08b-4221-735f-3b556cf5347e">
                             <SHORT-NAME>SA_RMCU</SHORT-NAME>
                             <APPLICATION-ENDPOINT UUID="c16dc88f-f38d-c945-c3c8-0a05ca352019">
@@ -630,7 +1519,7 @@
                                   </SD-CLIENT-CONFIG>
                                 </CONSUMED-SERVICE-INSTANCE>
                               </CONSUMED-SERVICE-INSTANCES>
-                              <NETWORK-ENDPOINT-REF DEST="NETWORK-ENDPOINT">/Topology/Clusters/EthernetCluster/ChannelCommunication/NEP_RMCU</NETWORK-ENDPOINT-REF>
+                              <NETWORK-ENDPOINT-REF DEST="NETWORK-ENDPOINT">/Topology/Clusters/EthernetCluster/ChannelCommunication/NEP_PCU</NETWORK-ENDPOINT-REF>
                               <TP-CONFIGURATION>
                                 <UDP-TP>
                                   <UDP-TP-PORT>
@@ -653,23 +1542,12 @@
                                     <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_RMCU_C_EventGroup</ROUTING-GROUP-REF>
                                   </ROUTING-GROUP-REFS>
                                   <EVENT-HANDLERS>
-                                    <EVENT-HANDLER UUID="80bc000e-3373-ad4d-3d5a-8da4e1e77c32">
+                                    <EVENT-HANDLER>
                                       <SHORT-NAME>EH_RMCUZALeftEvents</SHORT-NAME>
                                       <APPLICATION-ENDPOINT-REF DEST="APPLICATION-ENDPOINT">/Topology/Clusters/EthernetCluster/ChannelCommunication/SA_IVA_RMCU/AEP_IVA_RMCU</APPLICATION-ENDPOINT-REF>
                                       <CONSUMED-EVENT-GROUP-REFS>
                                         <CONSUMED-EVENT-GROUP-REF DEST="CONSUMED-EVENT-GROUP">/Topology/Clusters/EthernetCluster/ChannelCommunication/SA_RMCU/AEP_RMCU/CSI_RMCU/CEG_RMCUZALeftEvents</CONSUMED-EVENT-GROUP-REF>
                                       </CONSUMED-EVENT-GROUP-REFS>
-                                      <MULTICAST-THRESHOLD>0</MULTICAST-THRESHOLD>
-                                      <ROUTING-GROUP-REFS>
-                                        <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_RMCU_C_EventGroup</ROUTING-GROUP-REF>
-                                      </ROUTING-GROUP-REFS>
-                                      <SD-SERVER-CONFIG>
-                                        <REQUEST-RESPONSE-DELAY>
-                                          <MAX-VALUE>0.2</MAX-VALUE>
-                                          <MIN-VALUE>0.02</MIN-VALUE>
-                                        </REQUEST-RESPONSE-DELAY>
-                                        <TTL>3</TTL>
-                                      </SD-SERVER-CONFIG>
                                     </EVENT-HANDLER>
                                   </EVENT-HANDLERS>
                                   <INSTANCE-IDENTIFIER>24591</INSTANCE-IDENTIFIER>
@@ -715,11 +1593,11 @@
                               </TP-CONFIGURATION>
                             </APPLICATION-ENDPOINT>
                           </SOCKET-ADDRESS>
-                          <SOCKET-ADDRESS UUID="6576d675-52e3-511f-e320-fc95ebcbb21d">
-                            <SHORT-NAME>SD_SA_RMCU</SHORT-NAME>
-                            <APPLICATION-ENDPOINT UUID="b6626929-dcd7-c9b5-b7fc-500df8f22c03">
-                              <SHORT-NAME>SD_AEP_RMCU</SHORT-NAME>
-                              <NETWORK-ENDPOINT-REF DEST="NETWORK-ENDPOINT">/Topology/Clusters/EthernetCluster/ChannelCommunication/NEP_RMCU</NETWORK-ENDPOINT-REF>
+                          <SOCKET-ADDRESS UUID="e1e27b86-e3fb-fff9-f881-86098bd94faf">
+                            <SHORT-NAME>SD_SA_PCU</SHORT-NAME>
+                            <APPLICATION-ENDPOINT UUID="1fdcdcbd-1dda-c5d8-a7f1-39fe6a49efb8">
+                              <SHORT-NAME>SD_AEP_PCU</SHORT-NAME>
+                              <NETWORK-ENDPOINT-REF DEST="NETWORK-ENDPOINT">/Topology/Clusters/EthernetCluster/ChannelCommunication/NEP_PCU</NETWORK-ENDPOINT-REF>
                               <TP-CONFIGURATION>
                                 <UDP-TP>
                                   <UDP-TP-PORT>
@@ -814,6 +1692,14 @@
                   <CATEGORY>WIRED</CATEGORY>
                   <COMM-CONTROLLER-REF DEST="ETHERNET-COMMUNICATION-CONTROLLER">/Topology/HardwareComponents/ZAFL/CT_ZAFL_EthernetCluster</COMM-CONTROLLER-REF>
                   <ECU-COMM-PORT-INSTANCES>
+                    <I-PDU-PORT UUID="32ed7c5a-572d-a2f5-06b5-c44ada823453">
+                      <SHORT-NAME>PP_PCUIVA10msEvent</SHORT-NAME>
+                      <COMMUNICATION-DIRECTION>OUT</COMMUNICATION-DIRECTION>
+                    </I-PDU-PORT>
+                    <I-PDU-PORT UUID="a4bee1c7-018c-4418-2c73-aae65f7d2e1f">
+                      <SHORT-NAME>PP_PCUIVA50msEvent</SHORT-NAME>
+                      <COMMUNICATION-DIRECTION>OUT</COMMUNICATION-DIRECTION>
+                    </I-PDU-PORT>
                     <I-PDU-PORT UUID="f2623f5c-130c-fd92-0bb5-1fed566f20f3">
                       <SHORT-NAME>PP_RMCUZALeft10msEvent</SHORT-NAME>
                       <COMMUNICATION-DIRECTION>IN</COMMUNICATION-DIRECTION>
@@ -822,14 +1708,22 @@
                       <SHORT-NAME>SD_Ctrl_Rx_Multicast_CN</SHORT-NAME>
                       <COMMUNICATION-DIRECTION>IN</COMMUNICATION-DIRECTION>
                     </I-PDU-PORT>
-                    <I-PDU-PORT UUID="5143f5f1-1ce6-c8eb-e821-efa519b90db5">
-                      <SHORT-NAME>SD_Ctrl_Rx_RMCU_CN</SHORT-NAME>
+                    <I-PDU-PORT UUID="24358fd0-c631-f2c4-b847-c9d7cfcfaf48">
+                      <SHORT-NAME>SD_Ctrl_Rx_PCU_CN</SHORT-NAME>
                       <COMMUNICATION-DIRECTION>IN</COMMUNICATION-DIRECTION>
                     </I-PDU-PORT>
-                    <I-PDU-PORT UUID="7a515c62-9432-18e3-4835-34521fb62356">
-                      <SHORT-NAME>SD_Ctrl_Tx_RMCU_CN</SHORT-NAME>
+                    <I-PDU-PORT UUID="9173365c-0129-2647-2a8d-6a2ff29c149d">
+                      <SHORT-NAME>SD_Ctrl_Tx_PCU_CN</SHORT-NAME>
                       <COMMUNICATION-DIRECTION>OUT</COMMUNICATION-DIRECTION>
                     </I-PDU-PORT>
+                    <I-SIGNAL-PORT UUID="4c21a0c7-40b8-5ccd-479f-014b6bb81d90">
+                      <SHORT-NAME>SP_PCUIVA10msEvent</SHORT-NAME>
+                      <COMMUNICATION-DIRECTION>OUT</COMMUNICATION-DIRECTION>
+                    </I-SIGNAL-PORT>
+                    <I-SIGNAL-PORT UUID="43b065c0-3f1a-accb-8f78-fc38583822eb">
+                      <SHORT-NAME>SP_PCUIVA50msEvent</SHORT-NAME>
+                      <COMMUNICATION-DIRECTION>OUT</COMMUNICATION-DIRECTION>
+                    </I-SIGNAL-PORT>
                     <I-SIGNAL-PORT UUID="839e1568-0fe5-635c-9798-714c7c339f6f">
                       <SHORT-NAME>SP_RMCUZALeft10msEvent</SHORT-NAME>
                       <COMMUNICATION-DIRECTION>IN</COMMUNICATION-DIRECTION>
@@ -837,7 +1731,7 @@
                   </ECU-COMM-PORT-INSTANCES>
                   <NETWORK-ENDPOINT-REFS>
                     <NETWORK-ENDPOINT-REF DEST="NETWORK-ENDPOINT">/Topology/Clusters/EthernetCluster/ChannelCommunication/NEP_MC</NETWORK-ENDPOINT-REF>
-                    <NETWORK-ENDPOINT-REF DEST="NETWORK-ENDPOINT">/Topology/Clusters/EthernetCluster/ChannelCommunication/NEP_RMCU</NETWORK-ENDPOINT-REF>
+                    <NETWORK-ENDPOINT-REF DEST="NETWORK-ENDPOINT">/Topology/Clusters/EthernetCluster/ChannelCommunication/NEP_PCU</NETWORK-ENDPOINT-REF>
                     <NETWORK-ENDPOINT-REF DEST="NETWORK-ENDPOINT">/Topology/Clusters/EthernetCluster/ChannelCommunication/NEP_IVA</NETWORK-ENDPOINT-REF>
                   </NETWORK-ENDPOINT-REFS>
                 </ETHERNET-COMMUNICATION-CONNECTOR>

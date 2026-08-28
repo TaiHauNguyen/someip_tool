@@ -258,6 +258,10 @@ class Builder:
                                           base_type_name(en.base_type) or "uint8")
             node["compu_ref"] = self.n.compu_path(en.compu_method)
             node["constr_ref"] = self.n.constr_path(en.data_constr)
+            # the compu method and the constraint already say how the value is
+            # read, so a calibration access on top adds nothing; the files
+            # DaVinci is happy with leave it out here
+            node["calibration"] = None
         elif arr is not None:
             # arrays are named types; a member points at one instead of inlining it
             self._as_type_reference(node, self.n.impl_type_path(type_name))
@@ -415,9 +419,14 @@ class Builder:
             "instance_id": parse_int(s.instance_id),
             "service_id": parse_int(s.interface_id),
             "sd": self._sd_config(s, server=True),
+            # Only the instance this ECU really offers announces itself: it
+            # carries the routing groups and the SD server config.  The
+            # instance that stands for a remote provider just names the
+            # application endpoint its events arrive on.
             "handlers": [{
                 "name": self.n.eh(g), "path": path + "/" + self.n.eh(g),
                 "aep_ref": aep_path,
+                "offered": s.is_provider,
                 "ceg_ref": ceg_of.get(g.name, ""),
                 "routing_group_ref": self.n.routing_group_path(s),
                 "rr_min": s.sd.request_response_delay_min,
