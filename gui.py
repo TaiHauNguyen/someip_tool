@@ -427,22 +427,43 @@ class App(tk.Tk):
         if announce:
             self.status.set(self.lic.summary())
 
+    def _licensed_for(self, action: str) -> bool:
+        """Re-read before acting: the licence file can change, or expire, while
+        the window sits open, and a stale enabled button would be a lie."""
+        self.refresh_license()
+        if self.lic.valid:
+            return True
+        messagebox.showwarning(
+            "Licence required",
+            "A licence is required to %s.\n\n%s" % (action, self.lic.reason))
+        return False
+
     def show_license(self) -> None:
+        self.refresh_license()
         st = self.lic
+        found = licensing.all_licenses()
+        # naming every copy on disk, not just the one in force: a second file
+        # elsewhere is otherwise invisible, and editing the wrong one looks
+        # like the check being ignored
+        where = "\n".join(
+            "  %s %s\n      %s" % ("[in use]" if s.path == st.path and s.valid
+                                   else "[ignored]", p, s.summary())
+            for p, s in found) or "  (none)"
         if st.valid:
             messagebox.showinfo(
                 "Licence",
                 "Valid.\n\nLicensed to : %s\nMachine     : %s\nExpires     : %s "
-                "local time\nLicence file: %s"
+                "local time\n\nLicence files found:\n%s"
                 % (st.payload.get("to") or "-", st.payload.get("mac", ""),
-                   st.expires_local, st.path))
+                   st.expires_local, where))
         else:
             messagebox.showwarning(
                 "Licence",
                 "%s\n\nWithout one you can still import workbooks, open files and "
                 "look at everything; generating ARXML and saving the project JSON "
-                "stay locked.\n\nThis machine: %s"
-                % (st.summary(), ", ".join(licensing.machine_macs()) or "unknown"))
+                "stay locked.\n\nThis machine: %s\n\nLicence files found:\n%s"
+                % (st.summary(), ", ".join(licensing.machine_macs()) or "unknown",
+                   where))
 
     def install_license(self) -> None:
         path = filedialog.askopenfilename(
@@ -958,7 +979,7 @@ class App(tk.Tk):
         self.status.set("Loaded %s" % os.path.basename(path))
 
     def save_json(self, ask: bool = False) -> None:
-        if not self._commit_forms():
+        if not self._commit_forms() or not self._licensed_for("save the project JSON"):
             return
         path = self.path if (self.path and self.path.lower().endswith(".json") and not ask) else None
         if not path:
@@ -979,7 +1000,7 @@ class App(tk.Tk):
         self.status.set("Saved %s" % path)
 
     def generate_arxml(self) -> None:
-        if not self._commit_forms():
+        if not self._commit_forms() or not self._licensed_for("generate ARXML"):
             return
         issues = validator.validate(self.prj)
         errors = [i for i in issues if i[0] == validator.ERROR]

@@ -237,6 +237,28 @@ def unwrap(text: str) -> str:
     return "".join(keep)
 
 
+_HEADER_RE = re.compile(r"^#\s*(machine|expires|licensed)\s*:\s*(.*?)\s*$", re.M)
+_HEADER_FIELD = {"machine": "mac", "expires": "exp", "licensed": "to"}
+
+
+def header_mismatches(text: str, payload: Dict) -> List[str]:
+    """Where the readable header disagrees with what was actually signed.
+
+    Those '#' lines are a convenience, and the signature does not cover them -
+    but a file that says two different things is worse than one that says
+    nothing, so a licence whose header has been edited is refused rather than
+    quietly honoured.
+    """
+    out = []
+    for name, shown in _HEADER_RE.findall(text or ""):
+        want = str(payload.get(_HEADER_FIELD[name], ""))
+        got = shown[:-3].strip() if name == "expires" and shown.endswith("UTC") else shown
+        if got != want:
+            out.append("%s reads %r but the signed licence says %r"
+                       % (name, got, want))
+    return out
+
+
 def decode(token: str, public_key: Optional[Dict] = None) -> Dict:
     """Payload of a token whose signature checks out.  Raises otherwise."""
     key = public_key if public_key is not None else builtin_public_key()
@@ -339,6 +361,14 @@ def evaluate(text: str, macs: Optional[List[str]] = None,
     except LicenseError as exc:
         return Status(False, str(exc))
 
+    edited = header_mismatches(text, payload)
+    if edited:
+        return Status(False, "this file has been edited by hand - %s.  The lines "
+                             "starting with # are only a summary; the licence "
+                             "itself is the SOMEIP1... block and cannot be "
+                             "changed without the signing key."
+                      % "; ".join(edited), payload=payload)
+
     macs = machine_macs() if macs is None else macs
     if payload.get("mac") not in macs:
         return Status(False,
@@ -357,6 +387,28 @@ def evaluate(text: str, macs: Optional[List[str]] = None,
         return Status(False, "it expired on %s." % st.expires_local, payload=payload)
 
     return Status(True, "", payload=payload)
+
+
+def all_licenses() -> List[tuple]:
+    """(path, Status) for every licence file that exists, in search order.
+
+    More than one can be present - one beside the program and one installed for
+    the user - and only the first valid one counts.  Editing the other has no
+    effect, which is baffling unless it can be seen.
+    """
+    macs = machine_macs()
+    out = []
+    for path in license_paths():
+        if not os.path.isfile(path):
+            continue
+        try:
+            with open(path, encoding="utf-8") as fh:
+                st = evaluate(fh.read(), macs=macs)
+        except OSError as exc:
+            st = Status(False, "cannot be read: %s" % exc)
+        st.path = path
+        out.append((path, st))
+    return out
 
 
 def status() -> Status:
