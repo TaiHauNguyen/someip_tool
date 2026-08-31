@@ -298,7 +298,11 @@ def user_dir() -> str:
 
 
 def license_paths() -> List[str]:
-    """Every place a licence is looked for, in order."""
+    """Where a licence is looked for, nearest first.
+
+    SOMEIP_LICENSE, then beside the program, then the one installed for this
+    user.  The first of these that exists is the one that counts - see status().
+    """
     out = []
     env = os.environ.get("SOMEIP_LICENSE")
     if env:
@@ -412,9 +416,15 @@ def all_licenses() -> List[tuple]:
 
 
 def status() -> Status:
-    """Look in every known place and report on the first licence found."""
+    """The nearest licence file decides, whether or not it is any good.
+
+    Falling through to the next location when one is invalid sounds helpful and
+    is not: a stale copy installed months ago silently overrules the file you
+    just put beside the program, so editing or breaking that file appears to do
+    nothing at all.  The first file that exists answers, and if it is broken the
+    message names it.
+    """
     macs = machine_macs()
-    last = Status(False, "No licence found.")
     for path in license_paths():
         if not os.path.isfile(path):
             continue
@@ -422,13 +432,10 @@ def status() -> Status:
             with open(path, encoding="utf-8") as fh:
                 st = evaluate(fh.read(), macs=macs)
         except OSError as exc:
-            last = Status(False, "cannot read %s: %s" % (path, exc), path=path)
-            continue
+            st = Status(False, "it cannot be read: %s" % exc)
         st.path = path
-        if st.valid:
-            return st
-        last = st
-    return last
+        return st
+    return Status(False, "No licence found.")
 
 
 def require(action: str = "produce output") -> Status:

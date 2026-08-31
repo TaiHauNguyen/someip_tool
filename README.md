@@ -190,6 +190,19 @@ licence...* takes the file that comes back and stores it under
 `%APPDATA%\SomeIpTool\`.  A `license.key` beside the executable works too, and
 `SOMEIP_LICENSE` overrides both.
 
+A licence is looked for in three places, nearest first:
+
+1. the path in `SOMEIP_LICENSE`
+2. `license.key` beside the program
+3. `license.key` under `%APPDATA%\SomeIpTool\`
+
+**The first of these that exists decides**, whether or not it is any good.  It
+does not fall through to the next one when a file is broken or expired: a copy
+installed months ago would otherwise silently overrule the one you just put
+beside the program, and editing that file would appear to do nothing.  *Help >
+Licence status...* lists every copy found and marks the one in force, and *Help
+> Remove installed licence...* deletes the one under `%APPDATA%`.
+
 Expiry is entered in the issuer's local time and stored as UTC, so it means the
 same instant on a machine in another timezone.
 

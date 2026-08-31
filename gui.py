@@ -488,6 +488,26 @@ class App(tk.Tk):
                 "Licence", "The signature is good, but it does not apply here:\n\n%s"
                 % self.lic.reason)
 
+    def remove_license(self) -> None:
+        """Delete the copy installed for this user - the one place a licence
+        can otherwise linger without being obvious."""
+        path = os.path.join(licensing.user_dir(), licensing.LICENSE_FILENAME)
+        if not os.path.isfile(path):
+            messagebox.showinfo("Licence", "Nothing is installed for this user.\n\n"
+                                           "(%s does not exist)" % path)
+            return
+        if not messagebox.askyesno("Licence", "Delete this licence?\n\n%s\n\n"
+                                              "The file itself is gone afterwards - "
+                                              "keep a copy if you may need it again."
+                                   % path):
+            return
+        try:
+            os.remove(path)
+        except OSError as exc:
+            messagebox.showerror("Licence", "Could not delete it:\n\n%s" % exc)
+            return
+        self.refresh_license(announce=True)
+
     def show_machine_id(self) -> None:
         macs = licensing.machine_macs()
         text = "\n".join(macs) or "none could be read"
@@ -555,6 +575,7 @@ class App(tk.Tk):
         h = tk.Menu(menu, tearoff=0)
         h.add_command(label="Licence status...", command=self.show_license)
         h.add_command(label="Install licence...", command=self.install_license)
+        h.add_command(label="Remove installed licence...", command=self.remove_license)
         h.add_command(label="This machine's address...", command=self.show_machine_id)
         h.add_separator()
         h.add_command(label="About", command=lambda: messagebox.showinfo(
