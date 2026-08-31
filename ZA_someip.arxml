@@ -56,13 +56,13 @@
               <CATEGORY>SD</CATEGORY>
               <LENGTH>1500</LENGTH>
             </GENERAL-PURPOSE-PDU>
-            <GENERAL-PURPOSE-PDU UUID="bc1a9b4a-b2dc-ea30-3c9d-f7d98ddd66bc">
-              <SHORT-NAME>SD_Ctrl_Rx_PCU</SHORT-NAME>
+            <GENERAL-PURPOSE-PDU UUID="96206fb4-b84a-081f-72cd-11c3e44dbe74">
+              <SHORT-NAME>SD_Ctrl_Rx_ZAFL</SHORT-NAME>
               <CATEGORY>SD</CATEGORY>
               <LENGTH>1500</LENGTH>
             </GENERAL-PURPOSE-PDU>
-            <GENERAL-PURPOSE-PDU UUID="2978c9d0-4631-1837-2a6a-0fee51a044e4">
-              <SHORT-NAME>SD_Ctrl_Tx_PCU</SHORT-NAME>
+            <GENERAL-PURPOSE-PDU UUID="80da4a48-4572-d95c-5155-4e84835c2bc6">
+              <SHORT-NAME>SD_Ctrl_Tx_ZAFL</SHORT-NAME>
               <CATEGORY>SD</CATEGORY>
               <LENGTH>1500</LENGTH>
             </GENERAL-PURPOSE-PDU>
@@ -223,12 +223,12 @@
     <AR-PACKAGE UUID="39d866d7-46cd-e173-65e0-464be27ee844">
       <SHORT-NAME>SoAdRoutingGroups</SHORT-NAME>
       <ELEMENTS>
-        <SO-AD-ROUTING-GROUP UUID="f1c31a0d-a3d6-5dcd-09a5-ce462fe61ec1">
-          <SHORT-NAME>SoAdRG_PCU_P_EventGroup</SHORT-NAME>
+        <SO-AD-ROUTING-GROUP UUID="d604fd12-d549-0f5a-8fb3-1bbede4f1515">
+          <SHORT-NAME>SoAdRG_PCU_PCUIVAEvents_PEG</SHORT-NAME>
           <EVENT-GROUP-CONTROL-TYPE>ACTIVATION-UNICAST</EVENT-GROUP-CONTROL-TYPE>
         </SO-AD-ROUTING-GROUP>
-        <SO-AD-ROUTING-GROUP UUID="10a8f067-de97-03a7-b851-8e36526f368b">
-          <SHORT-NAME>SoAdRG_RMCU_C_EventGroup</SHORT-NAME>
+        <SO-AD-ROUTING-GROUP UUID="cacf59f0-3273-d386-dc4a-05c451f33b6b">
+          <SHORT-NAME>SoAdRG_RMCU_RMCUZALeftEvents_CEG</SHORT-NAME>
           <EVENT-GROUP-CONTROL-TYPE>ACTIVATION-UNICAST</EVENT-GROUP-CONTROL-TYPE>
         </SO-AD-ROUTING-GROUP>
       </ELEMENTS>
@@ -250,10 +250,10 @@
               <FIBEX-ELEMENT-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Rx_Multicast</FIBEX-ELEMENT-REF>
             </FIBEX-ELEMENT-REF-CONDITIONAL>
             <FIBEX-ELEMENT-REF-CONDITIONAL>
-              <FIBEX-ELEMENT-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Rx_PCU</FIBEX-ELEMENT-REF>
+              <FIBEX-ELEMENT-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Rx_ZAFL</FIBEX-ELEMENT-REF>
             </FIBEX-ELEMENT-REF-CONDITIONAL>
             <FIBEX-ELEMENT-REF-CONDITIONAL>
-              <FIBEX-ELEMENT-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Tx_PCU</FIBEX-ELEMENT-REF>
+              <FIBEX-ELEMENT-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Tx_ZAFL</FIBEX-ELEMENT-REF>
             </FIBEX-ELEMENT-REF-CONDITIONAL>
             <FIBEX-ELEMENT-REF-CONDITIONAL>
               <FIBEX-ELEMENT-REF DEST="I-SIGNAL">/Communication/Signals/sig_PCUIVA10msEvent</FIBEX-ELEMENT-REF>
@@ -274,10 +274,10 @@
               <FIBEX-ELEMENT-REF DEST="I-SIGNAL-I-PDU">/Communication/PDUs/pdu_RMCUZALeft10msEvent</FIBEX-ELEMENT-REF>
             </FIBEX-ELEMENT-REF-CONDITIONAL>
             <FIBEX-ELEMENT-REF-CONDITIONAL>
-              <FIBEX-ELEMENT-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_P_EventGroup</FIBEX-ELEMENT-REF>
+              <FIBEX-ELEMENT-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_PCUIVAEvents_PEG</FIBEX-ELEMENT-REF>
             </FIBEX-ELEMENT-REF-CONDITIONAL>
             <FIBEX-ELEMENT-REF-CONDITIONAL>
-              <FIBEX-ELEMENT-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_RMCU_C_EventGroup</FIBEX-ELEMENT-REF>
+              <FIBEX-ELEMENT-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_RMCU_RMCUZALeftEvents_CEG</FIBEX-ELEMENT-REF>
             </FIBEX-ELEMENT-REF-CONDITIONAL>
           </FIBEX-ELEMENTS>
         </SYSTEM>
@@ -1217,16 +1217,16 @@
                         <PDU-TRIGGERING UUID="28575083-e16e-40b3-c37c-443ae72705bf">
                           <SHORT-NAME>PT_SD_Ctrl_PCU_Rx</SHORT-NAME>
                           <I-PDU-PORT-REFS>
-                            <I-PDU-PORT-REF DEST="I-PDU-PORT">/Topology/HardwareComponents/ZAFL/CN_ZAFL_EthernetCluster/SD_Ctrl_Rx_PCU_CN</I-PDU-PORT-REF>
+                            <I-PDU-PORT-REF DEST="I-PDU-PORT">/Topology/HardwareComponents/ZAFL/CN_ZAFL_EthernetCluster/SD_Ctrl_Rx_ZAFL_CN</I-PDU-PORT-REF>
                           </I-PDU-PORT-REFS>
-                          <I-PDU-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Rx_PCU</I-PDU-REF>
+                          <I-PDU-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Rx_ZAFL</I-PDU-REF>
                         </PDU-TRIGGERING>
                         <PDU-TRIGGERING UUID="6cbbc768-3eab-1cef-f82c-f84b162db209">
                           <SHORT-NAME>PT_SD_Ctrl_PCU_Tx</SHORT-NAME>
                           <I-PDU-PORT-REFS>
-                            <I-PDU-PORT-REF DEST="I-PDU-PORT">/Topology/HardwareComponents/ZAFL/CN_ZAFL_EthernetCluster/SD_Ctrl_Tx_PCU_CN</I-PDU-PORT-REF>
+                            <I-PDU-PORT-REF DEST="I-PDU-PORT">/Topology/HardwareComponents/ZAFL/CN_ZAFL_EthernetCluster/SD_Ctrl_Tx_ZAFL_CN</I-PDU-PORT-REF>
                           </I-PDU-PORT-REFS>
-                          <I-PDU-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Tx_PCU</I-PDU-REF>
+                          <I-PDU-REF DEST="GENERAL-PURPOSE-PDU">/Communication/PDUs/SD_Ctrl_Tx_ZAFL</I-PDU-REF>
                         </PDU-TRIGGERING>
                       </PDU-TRIGGERINGS>
                       <NETWORK-ENDPOINTS>
@@ -1278,24 +1278,25 @@
                             <BUNDLED-CONNECTIONS>
                               <SOCKET-CONNECTION>
                                 <CLIENT-PORT-REF DEST="SOCKET-ADDRESS">/Topology/Clusters/EthernetCluster/ChannelCommunication/SA_IVA_PCU</CLIENT-PORT-REF>
+                                <PDUS>
+                                  <SOCKET-CONNECTION-IPDU-IDENTIFIER>
+                                    <HEADER-ID>1343062017</HEADER-ID>
+                                    <PDU-TRIGGERING-REF DEST="PDU-TRIGGERING">/Topology/Clusters/EthernetCluster/ChannelCommunication/PT_PCUIVA10msEvent</PDU-TRIGGERING-REF>
+                                    <ROUTING-GROUP-REFS>
+                                      <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_PCUIVAEvents_PEG</ROUTING-GROUP-REF>
+                                    </ROUTING-GROUP-REFS>
+                                  </SOCKET-CONNECTION-IPDU-IDENTIFIER>
+                                  <SOCKET-CONNECTION-IPDU-IDENTIFIER>
+                                    <HEADER-ID>1343062018</HEADER-ID>
+                                    <PDU-TRIGGERING-REF DEST="PDU-TRIGGERING">/Topology/Clusters/EthernetCluster/ChannelCommunication/PT_PCUIVA50msEvent</PDU-TRIGGERING-REF>
+                                    <ROUTING-GROUP-REFS>
+                                      <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_PCUIVAEvents_PEG</ROUTING-GROUP-REF>
+                                    </ROUTING-GROUP-REFS>
+                                  </SOCKET-CONNECTION-IPDU-IDENTIFIER>
+                                </PDUS>
+                                <SHORT-LABEL>SC_PCU_IVA</SHORT-LABEL>
                               </SOCKET-CONNECTION>
                             </BUNDLED-CONNECTIONS>
-                            <PDUS>
-                              <SOCKET-CONNECTION-IPDU-IDENTIFIER>
-                                <HEADER-ID>1343062017</HEADER-ID>
-                                <PDU-TRIGGERING-REF DEST="PDU-TRIGGERING">/Topology/Clusters/EthernetCluster/ChannelCommunication/PT_PCUIVA10msEvent</PDU-TRIGGERING-REF>
-                                <ROUTING-GROUP-REFS>
-                                  <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_P_EventGroup</ROUTING-GROUP-REF>
-                                </ROUTING-GROUP-REFS>
-                              </SOCKET-CONNECTION-IPDU-IDENTIFIER>
-                              <SOCKET-CONNECTION-IPDU-IDENTIFIER>
-                                <HEADER-ID>1343062018</HEADER-ID>
-                                <PDU-TRIGGERING-REF DEST="PDU-TRIGGERING">/Topology/Clusters/EthernetCluster/ChannelCommunication/PT_PCUIVA50msEvent</PDU-TRIGGERING-REF>
-                                <ROUTING-GROUP-REFS>
-                                  <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_P_EventGroup</ROUTING-GROUP-REF>
-                                </ROUTING-GROUP-REFS>
-                              </SOCKET-CONNECTION-IPDU-IDENTIFIER>
-                            </PDUS>
                             <SERVER-PORT-REF DEST="SOCKET-ADDRESS">/Topology/Clusters/EthernetCluster/ChannelCommunication/SA_PCU</SERVER-PORT-REF>
                           </SOCKET-CONNECTION-BUNDLE>
                           <SOCKET-CONNECTION-BUNDLE>
@@ -1303,17 +1304,18 @@
                             <BUNDLED-CONNECTIONS>
                               <SOCKET-CONNECTION>
                                 <CLIENT-PORT-REF DEST="SOCKET-ADDRESS">/Topology/Clusters/EthernetCluster/ChannelCommunication/SA_RMCU</CLIENT-PORT-REF>
+                                <PDUS>
+                                  <SOCKET-CONNECTION-IPDU-IDENTIFIER>
+                                    <HEADER-ID>1343193090</HEADER-ID>
+                                    <PDU-TRIGGERING-REF DEST="PDU-TRIGGERING">/Topology/Clusters/EthernetCluster/ChannelCommunication/PT_RMCUZALeft10msEvent</PDU-TRIGGERING-REF>
+                                    <ROUTING-GROUP-REFS>
+                                      <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_RMCU_RMCUZALeftEvents_CEG</ROUTING-GROUP-REF>
+                                    </ROUTING-GROUP-REFS>
+                                  </SOCKET-CONNECTION-IPDU-IDENTIFIER>
+                                </PDUS>
+                                <SHORT-LABEL>SC_RMCU_IVA</SHORT-LABEL>
                               </SOCKET-CONNECTION>
                             </BUNDLED-CONNECTIONS>
-                            <PDUS>
-                              <SOCKET-CONNECTION-IPDU-IDENTIFIER>
-                                <HEADER-ID>1343193090</HEADER-ID>
-                                <PDU-TRIGGERING-REF DEST="PDU-TRIGGERING">/Topology/Clusters/EthernetCluster/ChannelCommunication/PT_RMCUZALeft10msEvent</PDU-TRIGGERING-REF>
-                                <ROUTING-GROUP-REFS>
-                                  <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_RMCU_C_EventGroup</ROUTING-GROUP-REF>
-                                </ROUTING-GROUP-REFS>
-                              </SOCKET-CONNECTION-IPDU-IDENTIFIER>
-                            </PDUS>
                             <SERVER-PORT-REF DEST="SOCKET-ADDRESS">/Topology/Clusters/EthernetCluster/ChannelCommunication/SA_IVA_RMCU</SERVER-PORT-REF>
                           </SOCKET-CONNECTION-BUNDLE>
                           <SOCKET-CONNECTION-BUNDLE>
@@ -1376,7 +1378,7 @@
                                 <PROVIDED-SERVICE-INSTANCE UUID="b04d08e9-ca4e-a24f-390b-34378f38211b">
                                   <SHORT-NAME>PSI_PCU</SHORT-NAME>
                                   <ROUTING-GROUP-REFS>
-                                    <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_P_EventGroup</ROUTING-GROUP-REF>
+                                    <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_PCUIVAEvents_PEG</ROUTING-GROUP-REF>
                                   </ROUTING-GROUP-REFS>
                                   <EVENT-HANDLERS>
                                     <EVENT-HANDLER>
@@ -1386,7 +1388,7 @@
                                       </CONSUMED-EVENT-GROUP-REFS>
                                       <MULTICAST-THRESHOLD>0</MULTICAST-THRESHOLD>
                                       <ROUTING-GROUP-REFS>
-                                        <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_P_EventGroup</ROUTING-GROUP-REF>
+                                        <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_PCUIVAEvents_PEG</ROUTING-GROUP-REF>
                                       </ROUTING-GROUP-REFS>
                                       <SD-SERVER-CONFIG>
                                         <REQUEST-RESPONSE-DELAY>
@@ -1435,7 +1437,7 @@
                                 <CONSUMED-SERVICE-INSTANCE UUID="0f83084e-1409-e167-6737-9050a3325fca">
                                   <SHORT-NAME>CSI_IVA_PCU</SHORT-NAME>
                                   <ROUTING-GROUP-REFS>
-                                    <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_P_EventGroup</ROUTING-GROUP-REF>
+                                    <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_PCUIVAEvents_PEG</ROUTING-GROUP-REF>
                                   </ROUTING-GROUP-REFS>
                                   <CONSUMED-EVENT-GROUPS>
                                     <CONSUMED-EVENT-GROUP UUID="249f00c5-7320-41ef-27bf-396c0a76dd99">
@@ -1443,7 +1445,7 @@
                                       <APPLICATION-ENDPOINT-REF DEST="APPLICATION-ENDPOINT">/Topology/Clusters/EthernetCluster/ChannelCommunication/SA_IVA_PCU/AEP_IVA_PCU</APPLICATION-ENDPOINT-REF>
                                       <EVENT-GROUP-IDENTIFIER>1</EVENT-GROUP-IDENTIFIER>
                                       <ROUTING-GROUP-REFS>
-                                        <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_P_EventGroup</ROUTING-GROUP-REF>
+                                        <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_PCU_PCUIVAEvents_PEG</ROUTING-GROUP-REF>
                                       </ROUTING-GROUP-REFS>
                                       <SD-CLIENT-CONFIG>
                                         <REQUEST-RESPONSE-DELAY>
@@ -1486,7 +1488,7 @@
                                 <CONSUMED-SERVICE-INSTANCE UUID="477c39b5-1a90-ca8c-4d7f-e55f3b605038">
                                   <SHORT-NAME>CSI_RMCU</SHORT-NAME>
                                   <ROUTING-GROUP-REFS>
-                                    <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_RMCU_C_EventGroup</ROUTING-GROUP-REF>
+                                    <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_RMCU_RMCUZALeftEvents_CEG</ROUTING-GROUP-REF>
                                   </ROUTING-GROUP-REFS>
                                   <CONSUMED-EVENT-GROUPS>
                                     <CONSUMED-EVENT-GROUP UUID="9d9c4648-ede8-7f15-bf00-f31448afa9c5">
@@ -1494,7 +1496,7 @@
                                       <APPLICATION-ENDPOINT-REF DEST="APPLICATION-ENDPOINT">/Topology/Clusters/EthernetCluster/ChannelCommunication/SA_RMCU/AEP_RMCU</APPLICATION-ENDPOINT-REF>
                                       <EVENT-GROUP-IDENTIFIER>2</EVENT-GROUP-IDENTIFIER>
                                       <ROUTING-GROUP-REFS>
-                                        <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_RMCU_C_EventGroup</ROUTING-GROUP-REF>
+                                        <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_RMCU_RMCUZALeftEvents_CEG</ROUTING-GROUP-REF>
                                       </ROUTING-GROUP-REFS>
                                       <SD-CLIENT-CONFIG>
                                         <REQUEST-RESPONSE-DELAY>
@@ -1539,7 +1541,7 @@
                                 <PROVIDED-SERVICE-INSTANCE UUID="62b10e5a-84d2-c783-52f2-8bd17d61f9da">
                                   <SHORT-NAME>PSI_IVA_RMCU</SHORT-NAME>
                                   <ROUTING-GROUP-REFS>
-                                    <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_RMCU_C_EventGroup</ROUTING-GROUP-REF>
+                                    <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">/SoAdRoutingGroups/SoAdRG_RMCU_RMCUZALeftEvents_CEG</ROUTING-GROUP-REF>
                                   </ROUTING-GROUP-REFS>
                                   <EVENT-HANDLERS>
                                     <EVENT-HANDLER>
@@ -1708,12 +1710,12 @@
                       <SHORT-NAME>SD_Ctrl_Rx_Multicast_CN</SHORT-NAME>
                       <COMMUNICATION-DIRECTION>IN</COMMUNICATION-DIRECTION>
                     </I-PDU-PORT>
-                    <I-PDU-PORT UUID="24358fd0-c631-f2c4-b847-c9d7cfcfaf48">
-                      <SHORT-NAME>SD_Ctrl_Rx_PCU_CN</SHORT-NAME>
+                    <I-PDU-PORT UUID="e43aac8c-ab15-31ef-9886-7acd7d4c7304">
+                      <SHORT-NAME>SD_Ctrl_Rx_ZAFL_CN</SHORT-NAME>
                       <COMMUNICATION-DIRECTION>IN</COMMUNICATION-DIRECTION>
                     </I-PDU-PORT>
-                    <I-PDU-PORT UUID="9173365c-0129-2647-2a8d-6a2ff29c149d">
-                      <SHORT-NAME>SD_Ctrl_Tx_PCU_CN</SHORT-NAME>
+                    <I-PDU-PORT UUID="4692a1c5-c0a9-2239-c0e1-4ed56f859207">
+                      <SHORT-NAME>SD_Ctrl_Tx_ZAFL_CN</SHORT-NAME>
                       <COMMUNICATION-DIRECTION>OUT</COMMUNICATION-DIRECTION>
                     </I-PDU-PORT>
                     <I-SIGNAL-PORT UUID="4c21a0c7-40b8-5ccd-479f-014b6bb81d90">

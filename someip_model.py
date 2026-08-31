@@ -303,10 +303,6 @@ class Service:
     def is_provider(self) -> bool:
         return self.role == "provider"
 
-    @property
-    def routing_group(self) -> str:
-        return "SoAdRG_%s_%s_EventGroup" % (self.tag, "P" if self.is_provider else "C")
-
     def find_event_group(self, name: str) -> Optional[EventGroup]:
         for g in self.event_groups:
             if g.name == name:

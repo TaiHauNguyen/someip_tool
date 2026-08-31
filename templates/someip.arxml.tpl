@@ -387,35 +387,29 @@
 
                       <SO-AD-CONFIG>
                         <CONNECTION-BUNDLES>
-                          <!-- Neither of these is Identifiable in the 4.4 schema, so they take no UUID. -->
+                          <!-- Neither a bundle nor an event handler is
+                               Identifiable in the 4.4 schema, so they take no
+                               UUID.  One bundle holds every peer that talks to
+                               the same server socket. -->
                           <SOCKET-CONNECTION-BUNDLE t-foreach="bundles as scb">
                             <SHORT-NAME>${scb.name}</SHORT-NAME>
                             <BUNDLED-CONNECTIONS>
-                              <!-- A connection that carries no PDU of its own is
-                                   written in the short form, the way the files
-                                   DaVinci accepts do it. -->
-                              <SOCKET-CONNECTION>
-                                <CLIENT-IP-ADDR-FROM-CONNECTION-REQUEST t-if="scb.connection_pdus" t-text="scb.client_from_request"/>
-                                <CLIENT-PORT-FROM-CONNECTION-REQUEST t-if="scb.connection_pdus" t-text="scb.client_from_request"/>
-                                <CLIENT-PORT-REF DEST="SOCKET-ADDRESS">${scb.client_ref}</CLIENT-PORT-REF>
-                                <PDUS t-if="scb.connection_pdus">
-                                  <SOCKET-CONNECTION-IPDU-IDENTIFIER t-foreach="scb.connection_pdus as cp">
-                                    <HEADER-ID t-text="cp.header_id"/>
-                                    <PDU-TRIGGERING-REF DEST="PDU-TRIGGERING">${cp.pt_ref}</PDU-TRIGGERING-REF>
+                              <SOCKET-CONNECTION t-foreach="scb.connections as conn">
+                                <CLIENT-IP-ADDR-FROM-CONNECTION-REQUEST t-if="conn.from_request" t-text="conn.from_request"/>
+                                <CLIENT-PORT-FROM-CONNECTION-REQUEST t-if="conn.from_request" t-text="conn.from_request"/>
+                                <CLIENT-PORT-REF DEST="SOCKET-ADDRESS">${conn.client_ref}</CLIENT-PORT-REF>
+                                <PDUS t-if="conn.pdus">
+                                  <SOCKET-CONNECTION-IPDU-IDENTIFIER t-foreach="conn.pdus as sp">
+                                    <HEADER-ID t-text="sp.header_id"/>
+                                    <PDU-TRIGGERING-REF DEST="PDU-TRIGGERING">${sp.pt_ref}</PDU-TRIGGERING-REF>
+                                    <ROUTING-GROUP-REFS t-if="sp.routing_group_ref">
+                                      <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">${sp.routing_group_ref}</ROUTING-GROUP-REF>
+                                    </ROUTING-GROUP-REFS>
                                   </SOCKET-CONNECTION-IPDU-IDENTIFIER>
                                 </PDUS>
-                                <SHORT-LABEL t-if="scb.connection_pdus">${scb.label}</SHORT-LABEL>
+                                <SHORT-LABEL t-if="conn.label">${conn.label}</SHORT-LABEL>
                               </SOCKET-CONNECTION>
                             </BUNDLED-CONNECTIONS>
-                            <PDUS t-if="scb.pdus">
-                              <SOCKET-CONNECTION-IPDU-IDENTIFIER t-foreach="scb.pdus as sp">
-                                <HEADER-ID t-text="sp.header_id"/>
-                                <PDU-TRIGGERING-REF DEST="PDU-TRIGGERING">${sp.pt_ref}</PDU-TRIGGERING-REF>
-                                <ROUTING-GROUP-REFS>
-                                  <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">${sp.routing_group_ref}</ROUTING-GROUP-REF>
-                                </ROUTING-GROUP-REFS>
-                              </SOCKET-CONNECTION-IPDU-IDENTIFIER>
-                            </PDUS>
                             <SERVER-PORT-REF DEST="SOCKET-ADDRESS">${scb.server_ref}</SERVER-PORT-REF>
                           </SOCKET-CONNECTION-BUNDLE>
                         </CONNECTION-BUNDLES>
@@ -430,7 +424,7 @@
                                 <CONSUMED-SERVICE-INSTANCE UUID="${uuid(csi.path)}">
                                   <SHORT-NAME>${csi.name}</SHORT-NAME>
                                   <ROUTING-GROUP-REFS>
-                                    <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">${csi.routing_group_ref}</ROUTING-GROUP-REF>
+                                    <ROUTING-GROUP-REF t-foreach="csi.routing_group_refs as rgref" DEST="SO-AD-ROUTING-GROUP">${rgref}</ROUTING-GROUP-REF>
                                   </ROUTING-GROUP-REFS>
                                   <CONSUMED-EVENT-GROUPS>
                                     <CONSUMED-EVENT-GROUP t-foreach="csi.groups as ceg" UUID="${uuid(ceg.path)}">
@@ -460,7 +454,7 @@
                                 <PROVIDED-SERVICE-INSTANCE UUID="${uuid(psi.path)}">
                                   <SHORT-NAME>${psi.name}</SHORT-NAME>
                                   <ROUTING-GROUP-REFS>
-                                    <ROUTING-GROUP-REF DEST="SO-AD-ROUTING-GROUP">${psi.routing_group_ref}</ROUTING-GROUP-REF>
+                                    <ROUTING-GROUP-REF t-foreach="psi.routing_group_refs as rgref" DEST="SO-AD-ROUTING-GROUP">${rgref}</ROUTING-GROUP-REF>
                                   </ROUTING-GROUP-REFS>
                                   <EVENT-HANDLERS>
                                     <EVENT-HANDLER t-foreach="psi.handlers as eh">

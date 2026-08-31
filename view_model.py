@@ -97,7 +97,7 @@ class Builder:
                     "port_interface": self.n.port_interface(s, e),
                     "port_interface_path": self.n.port_interface_path(s, e),
                     "type_ref": self.n.impl_type_path(e.serializer),
-                    "routing_group_ref": self.n.routing_group_path(s),
+                    "routing_group_ref": self._routing_group_for(s, e.event_group)["path"],
                 })
         return out
 
@@ -120,16 +120,29 @@ class Builder:
             p["port_path"] = "%s/%s" % (n.connector, p["port"])
         return {"port": port, "header_id": SD_HEADER_ID, "pdus": pdus, "length": 1500}
 
+    def _routing_group_for(self, s: Service, group_name: str) -> Dict[str, str]:
+        """The SO-AD-ROUTING-GROUP that carries one event group of one service."""
+        short = self.n.routing_group(s, group_name)
+        return {
+            "name": short,
+            "path": self.n.routing_group_path(s, group_name),
+            "control_type": ("ACTIVATION-MULTICAST"
+                             if s.routing_mode.lower().startswith("staticmulticast")
+                             else "ACTIVATION-UNICAST"),
+        }
+
     def _routing_groups(self) -> List[Dict[str, str]]:
-        out = []
+        out, seen = [], set()
         for s in self.prj.services:
-            out.append({
-                "name": s.routing_group,
-                "path": self.n.routing_group_path(s),
-                "control_type": ("ACTIVATION-MULTICAST"
-                                 if s.routing_mode.lower().startswith("staticmulticast")
-                                 else "ACTIVATION-UNICAST"),
-            })
+            # both the declared groups and the ones events merely name, so that
+            # no reference is left dangling
+            names = [g.name for g in s.event_groups] + [e.event_group for e in s.events]
+            for gname in names:
+                rg = self._routing_group_for(s, gname)
+                if rg["path"] in seen:
+                    continue
+                seen.add(rg["path"])
+                out.append(rg)
         return out
 
     def _port_interfaces(self, events) -> List[Dict[str, Any]]:
@@ -415,7 +428,7 @@ class Builder:
         path = aep_path + "/" + name
         return {
             "name": name, "path": path,
-            "routing_group_ref": self.n.routing_group_path(s),
+            "routing_group_refs": [self._routing_group_for(s, g.name)["path"] for g in groups],
             "instance_id": parse_int(s.instance_id),
             "service_id": parse_int(s.interface_id),
             "sd": self._sd_config(s, server=True),
@@ -428,7 +441,7 @@ class Builder:
                 "aep_ref": aep_path,
                 "offered": s.is_provider,
                 "ceg_ref": ceg_of.get(g.name, ""),
-                "routing_group_ref": self.n.routing_group_path(s),
+                "routing_group_ref": self._routing_group_for(s, g.name)["path"],
                 "rr_min": s.sd.request_response_delay_min,
                 "rr_max": s.sd.request_response_delay_max,
                 "ttl": s.sd.ttl,
@@ -441,14 +454,14 @@ class Builder:
         path = aep_path + "/" + name
         return {
             "name": name, "path": path,
-            "routing_group_ref": self.n.routing_group_path(s),
+            "routing_group_refs": [self._routing_group_for(s, g.name)["path"] for g in groups],
             "psi_ref": "%s/%s" % (self.n.aep_path(peer), self.n.psi(peer)),
             "sd": self._sd_config(s, server=False),
             "groups": [{
                 "name": self.n.ceg(g), "path": path + "/" + self.n.ceg(g),
                 "aep_ref": aep_path,
                 "group_id": parse_int(g.group_id),
-                "routing_group_ref": self.n.routing_group_path(s),
+                "routing_group_ref": self._routing_group_for(s, g.name)["path"],
                 "rr_min": s.sd.request_response_delay_min,
                 "rr_max": s.sd.request_response_delay_max,
                 "ttl": s.sd.ttl,
@@ -477,32 +490,46 @@ class Builder:
         return out
 
     def _bundles(self, events) -> List[Dict[str, Any]]:
+        """One bundle per server socket; every peer is a connection inside it."""
         out: List[Dict[str, Any]] = []
+
         for s in self.prj.services:
             dests = self.plan.destinations(s)
-            multi = len(dests) > 1
             local_sa = self.n.sa_local(s)
             own = [ev for ev in events if ev["service"] is s]
+            known = {g.name for g in s.event_groups}
+
+            by_server: Dict[str, Dict[str, Any]] = {}
             for i, d in enumerate(dests):
                 peer_sa = self.plan.peer_socket(s, d)
                 server, client = (local_sa, peer_sa) if s.is_provider else (peer_sa, local_sa)
-                name = self.plan.bundle_name(s, d, multi)
+                server_ref = self.n.sa_path(server)
+                client_ref = self.n.sa_path(client)
+
                 # an event with an unknown group name lands on the first peer;
                 # validate.py reports the dangling group separately
                 names_here = set(d.group_names)
-                known = {g.name for g in s.event_groups}
                 mine = [ev for ev in own
                         if ev["event"].event_group in names_here
                         or (i == 0 and ev["event"].event_group not in known)]
+                pdus = [{"header_id": ev["header_id"], "pt_ref": ev["pt_path"],
+                         "routing_group_ref": ev["routing_group_ref"]} for ev in mine]
+
+                b = by_server.setdefault(server_ref, {"first_dest": d, "conns": {}})
+                c = b["conns"].get(client_ref)
+                if c is None:
+                    c = {"client_ref": client_ref, "from_request": False,
+                         "label": "SC_%s_%s" % (s.tag, d.zone), "pdus": []}
+                    b["conns"][client_ref] = c
+                c["pdus"].extend(pdus)
+
+            multi_bundle = len(by_server) > 1
+            for server_ref, b in by_server.items():
+                name = self.plan.bundle_name(s, b["first_dest"], multi_bundle)
                 out.append({
                     "name": name, "path": "%s/%s" % (self.n.chan, name),
-                    "client_ref": self.n.sa_path(client),
-                    "server_ref": self.n.sa_path(server),
-                    "client_from_request": False,
-                    "label": "SC_" + (("%s_%s" % (s.tag, d.zone)) if multi else s.tag),
-                    "connection_pdus": [],
-                    "pdus": [{"header_id": ev["header_id"], "pt_ref": ev["pt_path"],
-                              "routing_group_ref": ev["routing_group_ref"]} for ev in mine],
+                    "server_ref": server_ref,
+                    "connections": list(b["conns"].values()),
                 })
 
         sd = self._service_discovery()
@@ -514,15 +541,17 @@ class Builder:
         plans += [("MC", [by_tag["PT_SD_Ctrl_Rx_Multicast"]])]
         for tag, pdus in plans:
             name = "SD_SCB_" + tag
+            conn_pdus = [{"header_id": sd["header_id"], "pt_ref": p["triggering_path"],
+                          "routing_group_ref": None} for p in pdus]
             out.append({
                 "name": name, "path": "%s/%s" % (self.n.chan, name),
-                "client_ref": self.n.sa_path("SD_SA_ANY"),
                 "server_ref": self.n.sa_path("SD_SA_" + tag),
-                "client_from_request": True,
-                "label": name + "_SC",
-                "connection_pdus": [{"header_id": sd["header_id"], "pt_ref": p["triggering_path"]}
-                                    for p in pdus],
-                "pdus": [],
+                "connections": [{
+                    "client_ref": self.n.sa_path("SD_SA_ANY"),
+                    "from_request": bool(conn_pdus),
+                    "label": (name + "_SC") if conn_pdus else "",
+                    "pdus": conn_pdus,
+                }],
             })
         return out
 

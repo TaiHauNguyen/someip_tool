@@ -432,7 +432,11 @@ class ArxmlReader:
                 continue
             rg = inst.find("ROUTING-GROUP-REFS/ROUTING-GROUP-REF")
             if rg is not None and rg.text:
-                m = re.match(r"SoAdRG_(.+?)_(P|C)_EventGroup", rg.text.rsplit("/", 1)[-1])
+                # SoAdRG_<tag>_<event group>_PEG|CEG, and the older
+                # SoAdRG_<tag>_P|C_EventGroup that earlier files carry
+                short = rg.text.rsplit("/", 1)[-1]
+                m = (re.match(r"SoAdRG_(.+?)_.+_(?:PEG|CEG)$", short)
+                     or re.match(r"SoAdRG_(.+?)_(?:P|C)_EventGroup$", short))
                 if m:
                     return m.group(1)
         if local_sa.startswith("SA_"):

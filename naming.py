@@ -28,6 +28,7 @@ class Names:
     def __init__(self, prj: Project):
         self.prj = prj
         self.local = prj.local_tag()
+        self.ecu_name = prj.ecu_name
         self.chan = "/Topology/Clusters/%s/%s" % (prj.cluster_name, prj.channel_name)
         self.connector = "/Topology/HardwareComponents/%s/CN_%s_%s" % (
             prj.ecu_name, prj.ecu_name, prj.cluster_name)
@@ -87,10 +88,10 @@ class Names:
 
     # -- service discovery -------------------------------------------------
     def sd_rx(self) -> str:
-        return "SD_Ctrl_Rx_" + self.local
+        return "SD_Ctrl_Rx_" + self.ecu_name
 
     def sd_tx(self) -> str:
-        return "SD_Ctrl_Tx_" + self.local
+        return "SD_Ctrl_Tx_" + self.ecu_name
 
     def sd_mc(self) -> str:
         return "SD_Ctrl_Rx_Multicast"
@@ -132,8 +133,17 @@ class Names:
     def eh(self, g: EventGroup) -> str:
         return "EH_" + g.name
 
-    def routing_group_path(self, s: Service) -> str:
-        return "/SoAdRoutingGroups/" + s.routing_group
+    def routing_group(self, s: Service, group_name: str) -> str:
+        """One routing group per event group, tagged by the role that uses it.
+
+        SoAdRG_<ServiceInstance>_<EventGroup>_PEG for a service this ECU
+        provides, ..._CEG for one it consumes.
+        """
+        return "SoAdRG_%s_%s_%s" % (s.tag, group_name,
+                                    "PEG" if s.is_provider else "CEG")
+
+    def routing_group_path(self, s: Service, group_name: str) -> str:
+        return "/SoAdRoutingGroups/" + self.routing_group(s, group_name)
 
     def port_interface(self, s: Service, e: Event) -> str:
         prefix = (self.prj.port_iface_prefix_provider if s.is_provider
