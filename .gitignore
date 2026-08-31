@@ -2,9 +2,17 @@
 __pycache__/
 *.py[cod]
 
+# The licence signing key.  Anyone holding this can issue licences, so it must
+# never be committed, mailed or copied to another machine - back it up offline.
+license_private.json
+# Issued licences belong to one machine each, not in the repository
+license.key
+*.license.key
+
 # PyInstaller output - rebuild it with build.bat, do not ship it through git
 build/
 dist/
+dist-license-tool/
 *.spec
 
 # editor and OS local state

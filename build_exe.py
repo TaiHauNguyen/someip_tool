@@ -104,6 +104,8 @@ def build(name: str, entry: str, windowed: bool, onefile: bool) -> None:
         # the templates travel inside the exe; ';' is the Windows separator
         "--add-data", "%s%s%s" % (os.path.join(HERE, "templates"), os.pathsep, "templates"),
         "--hidden-import", "openpyxl",
+        # imported inside a function, so name it explicitly
+        "--hidden-import", "license_pubkey",
         # nothing here draws plots or crunches arrays; leaving these out keeps
         # the exe from swelling if they happen to be installed
         "--exclude-module", "numpy",
@@ -148,6 +150,17 @@ templates/
     one in this folder wins, so it can be edited without rebuilding.  Delete
     the folder and the built-in copy is used again.
 
+Licence
+    Importing workbooks, opening files and looking at everything needs no
+    licence.  Generating ARXML and saving the project JSON do.
+
+    The window says [UNLICENSED] in its title bar while it has none, and those
+    two buttons stay greyed out.
+
+    To get one: Help > This machine's address..., send that MAC address to
+    whoever issues licences, then Help > Install licence... with the file that
+    comes back.  Dropping it here as license.key works too.
+
 Requires 64-bit Windows.  If SmartScreen blocks the first run, choose
 "More info" then "Run anyway" - the executable is unsigned.
 """
@@ -156,12 +169,15 @@ Requires 64-bit Windows.  If SmartScreen blocks the first run, choose
 
 
 def main(argv=None) -> int:
+    global DIST                     # --license-tool redirects it
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--onedir", action="store_true",
                     help="a folder per exe instead of a single file (starts faster)")
     ap.add_argument("--gui", action="store_true", help="build only the window")
     ap.add_argument("--cli", action="store_true", help="build only the command line")
+    ap.add_argument("--license-tool", action="store_true",
+                    help="build the licence issuer instead - vendor only, never ship it")
     ap.add_argument("--clean", action="store_true", help="delete build/ and dist/ first")
     args = ap.parse_args(argv)
 
@@ -191,6 +207,17 @@ def main(argv=None) -> int:
                      "        and any Explorer window showing that folder."
                      % (os.path.relpath(d, HERE), exc))
             print("[build] removed %s" % os.path.relpath(d, HERE))
+
+    if args.license_tool:
+        # a separate folder: the issuer must never end up in what customers get
+        DIST = os.path.join(HERE, "dist-license-tool")
+        name = "SomeIpLicenceIssuer"
+        check_not_running(name, onefile=not args.onedir)
+        build(name, "license_tool.py", True, onefile=not args.onedir)
+        print("\n[build] done: %s" % DIST)
+        print("[build] this is the vendor tool - do not put it in the customer folder,")
+        print("[build] and keep license_private.json off any machine but yours.")
+        return 0
 
     wanted = TARGETS
     if args.gui:

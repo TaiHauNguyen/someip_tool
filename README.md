@@ -149,3 +149,55 @@ PyInstaller and `openpyxl` are installed by the script if they are missing.  The
 result runs on 64-bit Windows of the same or a newer version than the machine
 that built it - build on the oldest Windows you need to support.  The exe is
 unsigned, so SmartScreen may ask for **More info → Run anyway** the first time.
+
+## Licensing
+
+Importing workbooks, opening ARXML or JSON, editing and validating need no
+licence.  **Generating ARXML and saving the project JSON do.**  The window shows
+`[UNLICENSED]` in its title and greys those two out; the CLI refuses `build`
+with exit code 3 while `show`, `check` and `templates` keep working.
+
+A licence names one machine by MAC address and one expiry instant, to the
+minute, and is signed.  The customer build carries only the public half of the
+key, so it can recognise a genuine licence but cannot mint one.
+
+### Issuing (vendor side)
+
+```
+python license_tool.py --keygen                    once, ever
+python license_tool.py                             the window
+python license_tool.py --mac AA-BB-CC-DD-EE-FF        --until "2026-12-31 17:30" --to "Team X" -o license.key
+python build_exe.py --license-tool                 build the issuer itself
+```
+
+`--keygen` writes two files:
+
+| | |
+|---|---|
+| `license_private.json` | **secret.** Whoever holds it can issue licences. Never commit it, never mail it, back it up offline. Git ignores it. |
+| `license_pubkey.py` | committed, and compiled into the customer build. |
+
+Regenerating the key invalidates every licence already issued and needs the
+customer tool rebuilt, so do it once.
+
+The issuer executable reads `license_private.json` from its own folder, so keep
+the two together and keep both off customer machines.
+
+### Receiving (customer side)
+
+*Help > This machine's address...* gives the MAC to send.  *Help > Install
+licence...* takes the file that comes back and stores it under
+`%APPDATA%\SomeIpTool\`.  A `license.key` beside the executable works too, and
+`SOMEIP_LICENSE` overrides both.
+
+Expiry is entered in the issuer's local time and stored as UTC, so it means the
+same instant on a machine in another timezone.
+
+### What this does and does not stop
+
+It stops casual copying: the folder handed to one machine will not generate on
+another, and a licence cannot be edited or forged without the private key.
+
+It is not tamper-proof against someone who edits the program itself - no
+client-side check can be.  Nor does it survive a MAC address being changed by
+hand, and a network card swap needs a new licence.

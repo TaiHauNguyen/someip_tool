@@ -410,6 +410,10 @@ class Project:
 
     # -- (de)serialisation ------------------------------------------------
     def to_json(self, path: str) -> None:
+        # writing the project out is a licensed action; reading one back is not,
+        # so an unlicensed machine can still open and inspect everything
+        import licensing
+        licensing.require("save the project as JSON")
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(asdict(self), fh, indent=2, ensure_ascii=False)
 

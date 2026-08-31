@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import arxml_gen
 import arxml_io
 import excel_io
+import licensing
 import validate as validator
 from someip_model import Project, parse_int
 
@@ -140,11 +141,16 @@ def main(argv=None) -> int:
     if errors and not args.force:
         print("\nAborted - fix the errors above or pass --force.")
         return 1
-    arxml_gen.write(prj, args.output, args.template or prj.template)
-    print("\nWritten", args.output)
-    if args.json:
-        prj.to_json(args.json)
-        print("Written", args.json)
+    try:
+        arxml_gen.write(prj, args.output, args.template or prj.template)
+        print("\nWritten", args.output)
+        if args.json:
+            prj.to_json(args.json)
+            print("Written", args.json)
+    except licensing.LicenseError as exc:
+        # show and check need no licence, so this is the only place it bites
+        print("\n%s" % exc, file=sys.stderr)
+        return 3
     return 0
 
 

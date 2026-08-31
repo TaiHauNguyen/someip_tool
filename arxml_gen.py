@@ -16,6 +16,7 @@ import os
 import sys
 from typing import Optional
 
+import licensing
 import view_model
 from someip_model import Project
 from template_engine import Renderer, TemplateError  # noqa: F401 - re-exported
@@ -70,6 +71,9 @@ def resolve_template(template: Optional[str]) -> str:
 
 
 def generate(prj: Project, template: Optional[str] = None) -> str:
+    # the gate sits here rather than on the buttons, so that every route to an
+    # ARXML - GUI, CLI, bootstrap - passes through it
+    licensing.require("generate ARXML")
     path = resolve_template(template)
     context = view_model.build(prj)
     header = ("<!--Autosar Release %s-->\n"
@@ -82,5 +86,8 @@ def generate(prj: Project, template: Optional[str] = None) -> str:
 
 
 def write(prj: Project, out_path: str, template: Optional[str] = None) -> None:
+    # render before opening: otherwise a licence refusal, or any template error,
+    # would already have truncated whatever was there
+    text = generate(prj, template)
     with open(out_path, "w", encoding="utf-8", newline="\n") as fh:
-        fh.write(generate(prj, template))
+        fh.write(text)

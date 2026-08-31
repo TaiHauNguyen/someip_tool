@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import arxml_gen
 import arxml_io
+import licensing
 import theme
 import validate as validator
 from someip_model import (
@@ -397,9 +398,85 @@ class App(tk.Tk):
                   style="Status.TLabel").pack(fill="x", side="bottom")
 
         self._restyle()
+        self.refresh_license()
         if initial:
             self.open_file(initial)
         self.refresh()
+        if not self.lic.valid:
+            self.status.set(self.lic.summary()
+                            + "  Generate ARXML and Save JSON are locked.")
+
+    # ------------------------------------------------------------------
+    # licensing
+    # ------------------------------------------------------------------
+    def _set_title(self) -> None:
+        """One place, so opening a file cannot drop the licence marker."""
+        name = os.path.basename(self.path) if self.path else "untitled"
+        mark = "" if getattr(self, "lic", None) and self.lic.valid else "  [UNLICENSED]"
+        self.title("%s - %s%s" % (APP_TITLE, name, mark))
+
+    def refresh_license(self, announce: bool = False) -> None:
+        """Re-read the licence and open or close the two locked actions."""
+        self.lic = licensing.status()
+        state = "normal" if self.lic.valid else "disabled"
+        for btn in (self.btn_gen, self.btn_save):
+            btn.configure(state=state)
+        for i in self.locked_entries:
+            self.file_menu.entryconfigure(i, state=state)
+        self._set_title()
+        if announce:
+            self.status.set(self.lic.summary())
+
+    def show_license(self) -> None:
+        st = self.lic
+        if st.valid:
+            messagebox.showinfo(
+                "Licence",
+                "Valid.\n\nLicensed to : %s\nMachine     : %s\nExpires     : %s "
+                "local time\nLicence file: %s"
+                % (st.payload.get("to") or "-", st.payload.get("mac", ""),
+                   st.expires_local, st.path))
+        else:
+            messagebox.showwarning(
+                "Licence",
+                "%s\n\nWithout one you can still import workbooks, open files and "
+                "look at everything; generating ARXML and saving the project JSON "
+                "stay locked.\n\nThis machine: %s"
+                % (st.summary(), ", ".join(licensing.machine_macs()) or "unknown"))
+
+    def install_license(self) -> None:
+        path = filedialog.askopenfilename(
+            title="Licence file", filetypes=[("Licence", "*.key"), ("All files", "*.*")])
+        if not path:
+            return
+        try:
+            with open(path, encoding="utf-8") as fh:
+                dest = licensing.install(fh.read())
+        except licensing.LicenseError as exc:
+            messagebox.showerror("Licence", "That licence was not accepted:\n\n%s" % exc)
+            return
+        except OSError as exc:
+            messagebox.showerror("Licence", "Cannot read it:\n\n%s" % exc)
+            return
+        self.refresh_license(announce=True)
+        if self.lic.valid:
+            messagebox.showinfo("Licence", "Installed to:\n%s\n\n%s"
+                                % (dest, self.lic.summary()))
+        else:
+            messagebox.showwarning(
+                "Licence", "The signature is good, but it does not apply here:\n\n%s"
+                % self.lic.reason)
+
+    def show_machine_id(self) -> None:
+        macs = licensing.machine_macs()
+        text = "\n".join(macs) or "none could be read"
+        if macs:
+            self.clipboard_clear()
+            self.clipboard_append(macs[0])
+        messagebox.showinfo(
+            "This machine",
+            "Send this address to whoever issues licences.\n\n%s\n\n"
+            "(the first one is on the clipboard)" % text)
 
     # ------------------------------------------------------------------
     def switch_theme(self) -> None:
@@ -437,6 +514,11 @@ class App(tk.Tk):
         f.add_separator()
         f.add_command(label="Exit", command=self.destroy)
         menu.add_cascade(label="File", menu=f)
+        self.file_menu = f
+        # the two entries a licence unlocks, by their index in the File menu
+        self.locked_entries = [f.index("Save project JSON"),
+                               f.index("Save project JSON as..."),
+                               f.index("Generate ARXML...")]
 
         e = tk.Menu(menu, tearoff=0)
         e.add_command(label="Add service", command=self.add_service)
@@ -450,6 +532,10 @@ class App(tk.Tk):
         menu.add_cascade(label="View", menu=v)
 
         h = tk.Menu(menu, tearoff=0)
+        h.add_command(label="Licence status...", command=self.show_license)
+        h.add_command(label="Install licence...", command=self.install_license)
+        h.add_command(label="This machine's address...", command=self.show_machine_id)
+        h.add_separator()
         h.add_command(label="About", command=lambda: messagebox.showinfo(
             "About", APP_TITLE + "\n\nExcel -> model -> ARXML for DaVinci Classic.\n"
             "See MAPPING.md for the full field mapping."))
@@ -466,9 +552,13 @@ class App(tk.Tk):
                           ("Open ARXML", self.open_arxml),
                           ("Save JSON", self.save_json),
                           ("Validate", self.run_validate)):
-            ttk.Button(bar, text=text, command=cmd).pack(side="left", padx=(0, 6))
-        ttk.Button(bar, text="Generate ARXML", style="Accent.TButton",
-                   command=self.generate_arxml).pack(side="left", padx=(6, 0))
+            btn = ttk.Button(bar, text=text, command=cmd)
+            btn.pack(side="left", padx=(0, 6))
+            if text == "Save JSON":
+                self.btn_save = btn
+        self.btn_gen = ttk.Button(bar, text="Generate ARXML", style="Accent.TButton",
+                                  command=self.generate_arxml)
+        self.btn_gen.pack(side="left", padx=(6, 0))
         self.file_label = ttk.Label(bar, text="(no file)", style="Toolbar.TLabel")
         self.file_label.pack(side="right")
 
@@ -723,7 +813,7 @@ class App(tk.Tk):
         self._fill_groups()
         self._fill_types()
         self.file_label.config(text=self.path or "(no file)")
-        self.title("%s - %s" % (APP_TITLE, os.path.basename(self.path) if self.path else "untitled"))
+        self._set_title()
 
     def _show_service(self) -> None:
         self.service_form.load(self.current_service())
@@ -878,7 +968,12 @@ class App(tk.Tk):
                 filetypes=[("JSON", "*.json")])
         if not path:
             return
-        self.prj.to_json(path)
+        try:
+            self.prj.to_json(path)
+        except licensing.LicenseError as exc:
+            messagebox.showwarning("Licence required", str(exc))
+            self.refresh_license()
+            return
         self.path = path
         self.refresh()
         self.status.set("Saved %s" % path)
@@ -902,6 +997,10 @@ class App(tk.Tk):
             return
         try:
             arxml_gen.write(self.prj, path, self.prj.template)
+        except licensing.LicenseError as exc:
+            messagebox.showwarning("Licence required", str(exc))
+            self.refresh_license()
+            return
         except Exception:  # noqa: BLE001
             messagebox.showerror("Generation failed", traceback.format_exc())
             return
