@@ -67,10 +67,29 @@ def ensure(module: str, package: str = "") -> None:
         fail("%s installed but still will not import." % package)
 
 
+def check_not_running(name: str, onefile: bool) -> None:
+    """An executable that is still open cannot be replaced, and PyInstaller
+    reports only "Access is denied" about it."""
+    target = (os.path.join(DIST, name + ".exe") if onefile
+              else os.path.join(DIST, name, name + ".exe"))
+    if not os.path.exists(target):
+        return
+    try:
+        # Windows locks a running image against writing - but not against
+        # renaming it, so opening for write is the probe that tells the truth
+        open(target, "r+b").close()
+    except OSError:
+        fail("%s.exe is still running, so it cannot be replaced.\n"
+             "        Close its window, or run:  taskkill /IM %s.exe /F"
+             % (name, name))
+
+
 def run(cmd: list) -> None:
     print("[build] " + " ".join(cmd[1:]))
     if subprocess.call(cmd) != 0:
-        fail("PyInstaller failed - the output above says why.")
+        fail("PyInstaller failed - the output above says why.\n"
+             '        "Access is denied" on an .exe means it is still running:\n'
+             "        close it and build again.")
 
 
 def build(name: str, entry: str, windowed: bool, onefile: bool) -> None:
@@ -146,6 +165,13 @@ def main(argv=None) -> int:
     ap.add_argument("--clean", action="store_true", help="delete build/ and dist/ first")
     args = ap.parse_args(argv)
 
+    needed = [e for _, e, _ in TARGETS] + [os.path.join("templates", "someip.arxml.tpl")]
+    missing = [f for f in needed if not os.path.exists(os.path.join(HERE, f))]
+    if missing:
+        fail("not found next to build_exe.py: %s\n"
+             "        Run this from inside the someip_tool folder itself."
+             % ", ".join(missing))
+
     if sys.maxsize <= 2 ** 32:
         print("[build] warning: this is 32-bit Python, so the exe will be 32-bit too")
 
@@ -155,9 +181,16 @@ def main(argv=None) -> int:
 
     if args.clean:
         for d in (BUILD, DIST):
-            if os.path.isdir(d):
+            if not os.path.isdir(d):
+                continue
+            try:
                 shutil.rmtree(d)
-                print("[build] removed %s" % os.path.relpath(d, HERE))
+            except OSError as exc:
+                fail("cannot delete %s: %s\n"
+                     "        Something inside it is open - close SomeIpTool.exe\n"
+                     "        and any Explorer window showing that folder."
+                     % (os.path.relpath(d, HERE), exc))
+            print("[build] removed %s" % os.path.relpath(d, HERE))
 
     wanted = TARGETS
     if args.gui:
@@ -167,6 +200,7 @@ def main(argv=None) -> int:
 
     for name, entry, windowed in wanted:
         print("\n[build] === %s (%s) ===" % (name, entry))
+        check_not_running(name, onefile=not args.onedir)
         build(name, entry, windowed, onefile=not args.onedir)
 
     copy_templates()
