@@ -13,29 +13,60 @@ edit the template, not this file.
 from __future__ import annotations
 
 import os
+import sys
 from typing import Optional
 
 import view_model
 from someip_model import Project
 from template_engine import Renderer, TemplateError  # noqa: F401 - re-exported
 
-TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
-DEFAULT_TEMPLATE = os.path.join(TEMPLATE_DIR, "someip.arxml.tpl")
+DEFAULT_TEMPLATE_NAME = "someip.arxml.tpl"
+
+
+def template_dirs() -> list:
+    """Where a template may live, nearest first.
+
+    A frozen build unpacks its own copy of `templates/` into a temporary
+    directory, which is thrown away on exit.  Looking beside the executable
+    first lets someone drop a variant next to the .exe and use it without a
+    rebuild; the bundled copy is the fallback.
+    """
+    if getattr(sys, "frozen", False):
+        roots = [os.path.dirname(sys.executable), getattr(sys, "_MEIPASS", "")]
+    else:
+        roots = [os.path.dirname(os.path.abspath(__file__))]
+    seen, out = set(), []
+    for root in roots:
+        d = os.path.join(root, "templates") if root else ""
+        if d and d not in seen and os.path.isdir(d):
+            seen.add(d)
+            out.append(d)
+    return out
+
+
+TEMPLATE_DIR = (template_dirs() or [""])[0]
+DEFAULT_TEMPLATE = os.path.join(TEMPLATE_DIR, DEFAULT_TEMPLATE_NAME)
 
 
 def available_templates() -> list:
-    if not os.path.isdir(TEMPLATE_DIR):
-        return []
-    return sorted(os.path.join(TEMPLATE_DIR, f) for f in os.listdir(TEMPLATE_DIR)
-                  if f.endswith((".tpl", ".arxml")))
+    """Every template on offer; a name beside the exe hides the bundled one."""
+    by_name = {}
+    for d in reversed(template_dirs()):
+        for f in sorted(os.listdir(d)):
+            if f.endswith((".tpl", ".arxml")):
+                by_name[f] = os.path.join(d, f)
+    return [by_name[k] for k in sorted(by_name)]
 
 
 def resolve_template(template: Optional[str]) -> str:
-    if not template:
-        return DEFAULT_TEMPLATE
-    if os.path.isabs(template) or os.path.exists(template):
-        return template
-    return os.path.join(TEMPLATE_DIR, template)
+    name = template or DEFAULT_TEMPLATE_NAME
+    if os.path.isabs(name) or os.path.exists(name):
+        return name
+    for d in template_dirs():
+        cand = os.path.join(d, name)
+        if os.path.exists(cand):
+            return cand
+    return os.path.join(TEMPLATE_DIR, name)
 
 
 def generate(prj: Project, template: Optional[str] = None) -> str:

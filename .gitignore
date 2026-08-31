@@ -1,0 +1,4 @@
+# PyInstaller output - rebuild it with build.bat, do not ship it through git
+build/
+dist/
+*.spec

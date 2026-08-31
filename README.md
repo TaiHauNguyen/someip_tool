@@ -123,3 +123,29 @@ Picks up every workbook in the project directory, uses `ZA_someip.arxml` (or a
 base you pass as the first argument) for what the workbooks cannot express, and
 writes `ZA_someip.someip.json` + `ZA_someip.generated.arxml`.  Every adjustment
 it makes is printed.
+
+## Building an executable for a machine without Python
+
+```
+build.bat                 # or: python build_exe.py
+build.bat --onedir        # a folder per exe instead of one file - starts faster
+build.bat --clean         # discard the previous build first
+```
+
+Everything lands in `dist/`, and that whole folder is what you hand over:
+
+| | |
+|---|---|
+| `SomeIpTool.exe` | the window, no console behind it |
+| `someip-cli.exe` | the batch front end |
+| `templates/` | a loose copy of the ARXML templates |
+| `README.txt` | how to run it, for whoever receives the folder |
+
+The templates are bundled inside each exe as well.  `arxml_gen` looks beside the
+executable first, so a variant dropped into `dist/templates/` is used without a
+rebuild; delete the folder and the built-in copy takes over again.
+
+PyInstaller and `openpyxl` are installed by the script if they are missing.  The
+result runs on 64-bit Windows of the same or a newer version than the machine
+that built it - build on the oldest Windows you need to support.  The exe is
+unsigned, so SmartScreen may ask for **More info → Run anyway** the first time.
