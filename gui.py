@@ -67,11 +67,19 @@ class Form(ttk.Frame):
             label, path, kind = item[0], item[1], item[2]
             opts = item[3] if len(item) > 3 else None
             col, row = divmod(i, per_col)
+            c0 = col * 3                      # label | field | slack
             if label.startswith("--"):
-                ttk.Label(self, text=label[2:], style="Section.TLabel").grid(
-                    row=row, column=col * 2, columnspan=2, sticky="w", pady=(10, 2), padx=4)
+                # a heading plus a hairline running to the edge of its column:
+                # thirty identical rows need something to break them up, and a
+                # line does it where a colour change alone did not
+                head = ttk.Frame(self)
+                head.grid(row=row, column=c0, columnspan=3, sticky="ew",
+                          pady=(14, 4), padx=(6, 12))
+                ttk.Label(head, text=label[2:], style="Section.TLabel").pack(side="left")
+                ttk.Frame(head, style="Rule.TFrame", height=1).pack(
+                    side="left", fill="x", expand=True, padx=(8, 0), pady=(7, 0))
                 continue
-            ttk.Label(self, text=label).grid(row=row, column=col * 2, sticky="w", padx=(8, 4), pady=2)
+            ttk.Label(self, text=label).grid(row=row, column=c0, sticky="w", padx=(8, 4), pady=2)
             var = tk.StringVar()
             self.vars[path] = var
             if kind == "choice":
@@ -79,10 +87,16 @@ class Form(ttk.Frame):
             else:
                 w = ttk.Entry(self, textvariable=var, width=32,
                               state="readonly" if kind == "ro" else "normal")
-            w.grid(row=row, column=col * 2 + 1, sticky="ew", padx=(0, 12), pady=2)
+            w.grid(row=row, column=c0 + 1, sticky="ew", padx=(0, 12), pady=2)
             self.widgets[path] = w
+        # On a wide two-column tab the fields keep the width they asked for and
+        # a spacer takes the slack, rather than every entry stretching to the
+        # window edge.  A dialog is only as wide as its content, so there is no
+        # slack to give away and the field takes it all.
         for c in range(columns):
-            self.columnconfigure(c * 2 + 1, weight=1)
+            self.columnconfigure(c * 3 + 1, weight=0 if columns > 1 else 1,
+                                 minsize=210)
+            self.columnconfigure(c * 3 + 2, weight=1 if columns > 1 else 0)
 
     def load(self, target: Any) -> None:
         self.target = target
@@ -116,6 +130,114 @@ class Form(ttk.Frame):
                 raise ValueError("'%s' is not a valid value for %s" % (raw, label))
             set_path(self.target, path, value)
 
+
+
+class ToolButton(tk.Frame):
+    """A toolbar button carrying an icon above nothing but its own label.
+
+    ttk.Button draws all of its text in one font, and the icon font has no
+    letters in it, so icon-and-label needs two widgets - which means the hover,
+    pressed and disabled looks are drawn here rather than by the theme engine.
+    """
+
+    def __init__(self, master, text: str, icon_name: str, command,
+                 accent: bool = False, compact: bool = False,
+                 surface: str = "raised"):
+        p = theme.current()
+        self.surface = surface          # the palette key of what it sits on
+        super().__init__(master, background=p[surface], cursor="hand2",
+                         padx=0, pady=0)
+        self.command, self.accent, self.compact = command, accent, compact
+        self._state = "normal"
+        self._hover = False
+
+        glyph = theme.icon(icon_name, master)
+        self.icon = tk.Label(self, text=glyph, font=theme.icon_font(15 if not compact else 12),
+                             background=p[surface], foreground=p.text)
+        self.label = tk.Label(self, text=text, font=theme.BOLD_FONT if accent else theme.BASE_FONT,
+                              background=p[surface], foreground=p.text)
+        if glyph:
+            self.icon.pack(side="left", padx=(10 if not compact else 6, 0), pady=5)
+            self.label.pack(side="left", padx=(6, 10 if not compact else 6), pady=5)
+        else:                                  # no icon font: a plain text button
+            self.label.pack(side="left", padx=10, pady=5)
+
+        for w in (self, self.icon, self.label):
+            w.bind("<Enter>", self._enter)
+            w.bind("<Leave>", self._leave)
+            w.bind("<Button-1>", self._press)
+            w.bind("<ButtonRelease-1>", self._release)
+        self.restyle()
+
+    # -- looks ----------------------------------------------------------
+    def restyle(self, pressed: bool = False) -> None:
+        p = theme.current()
+        base = p[self.surface]
+        if self._state == "disabled":
+            bg, fg = (p.border, p.muted) if self.accent else (base, p.muted)
+        elif pressed:
+            bg = p.accent_hi if self.accent else p.press
+            fg = p.accent_fg if self.accent else p.text
+        elif self._hover:
+            bg = p.accent_hi if self.accent else p.hover
+            fg = p.accent_fg if self.accent else p.text
+        else:
+            bg = p.accent if self.accent else base
+            fg = p.accent_fg if self.accent else p.text
+        self.configure(background=bg)
+        for w in (self.icon, self.label):
+            w.configure(background=bg, foreground=fg)
+        self.configure(cursor="arrow" if self._state == "disabled" else "hand2")
+
+    def configure_state(self, state: str) -> None:
+        self._state = state
+        self.restyle()
+
+    # ttk-compatible enough for the licence gate to treat it like a Button
+    def __getitem__(self, key):
+        return self._state if key == "state" else tk.Frame.__getitem__(self, key)
+
+    def configure(self, cnf=None, **kw):       # noqa: D401 - matches tk signature
+        if "state" in kw:
+            self._state = kw.pop("state")
+            self.restyle()
+            if not kw:
+                return None
+        return tk.Frame.configure(self, cnf, **kw)
+
+    # -- events ---------------------------------------------------------
+    def _enter(self, _e=None):
+        self._hover = True
+        self.restyle()
+
+    def _leave(self, _e=None):
+        self._hover = False
+        self.restyle()
+
+    def _press(self, _e=None):
+        if self._state != "disabled":
+            self.restyle(pressed=True)
+
+    def _release(self, _e=None):
+        if self._state == "disabled":
+            return
+        self.restyle()
+        if self._hover:
+            self.command()
+
+
+def _align_columns(tree: ttk.Treeview, right=(), centre=()) -> None:
+    """Numbers read down a column when they are flush right; the heading has to
+    move with them or the two disagree by a column width."""
+    for c in right:
+        tree.column(c, anchor="e")
+        tree.heading(c, anchor="e")
+    for c in centre:
+        tree.column(c, anchor="center")
+        tree.heading(c, anchor="center")
+    for c in tree["columns"]:
+        if c not in right and c not in centre:
+            tree.heading(c, anchor="w")
 
 
 def _row_tag(tree: ttk.Treeview) -> str:
@@ -377,12 +499,29 @@ class App(tk.Tk):
         self.geometry("1240x820")
         self.prj = Project()
         self.path: Optional[str] = None
+        self._tool_buttons: list = []
+        self._svc_buttons: list = []
 
         self.theme_mode = tk.StringVar(value="light")
         self.pal = theme.apply(self, self.theme_mode.get())
 
         self._build_menu()
         self._build_toolbar()
+
+        # Packed before the notebook on purpose: the notebook expands, and pack
+        # hands the whole remaining cavity to the first expanding slave, so a
+        # status bar added afterwards is squeezed to a single pixel - which is
+        # what had been happening to every message the tool tried to show.
+        self.status = tk.StringVar(value="Ready. Use File > Import Excel to start.")
+        self.counts = tk.StringVar(value="")
+        sbar = ttk.Frame(self, style="Toolbar.TFrame")
+        sbar.pack(fill="x", side="bottom")
+        ttk.Label(sbar, textvariable=self.status, anchor="w",
+                  style="Status.TLabel").pack(side="left", fill="x", expand=True)
+        ttk.Frame(sbar, style="ToolRule.TFrame", width=1).pack(
+            side="left", fill="y", pady=4)
+        ttk.Label(sbar, textvariable=self.counts, anchor="e",
+                  style="Status.TLabel").pack(side="left")
 
         self.nb = ttk.Notebook(self)
         self.nb.pack(fill="both", expand=True, padx=6, pady=(0, 4))
@@ -393,10 +532,6 @@ class App(tk.Tk):
         self._tab_types()
         self._tab_check()
         self._tab_preview()
-
-        self.status = tk.StringVar(value="Ready. Use File > Import Excel to start.")
-        ttk.Label(self, textvariable=self.status, anchor="w",
-                  style="Status.TLabel").pack(fill="x", side="bottom")
 
         self._restyle()
         self.refresh_license()
@@ -410,6 +545,16 @@ class App(tk.Tk):
     # ------------------------------------------------------------------
     # licensing
     # ------------------------------------------------------------------
+    def _update_counts(self) -> None:
+        """What is loaded, at a glance, so the tabs need not be counted by hand."""
+        svc = self.prj.services
+        if not svc:
+            self.counts.set("nothing loaded")
+            return
+        self.counts.set("%d service(s)   %d event(s)   %d group(s)"
+                        % (len(svc), sum(len(s.events) for s in svc),
+                           sum(len(s.event_groups) for s in svc)))
+
     def _set_title(self) -> None:
         """One place, so opening a file cannot drop the licence marker."""
         name = os.path.basename(self.path) if self.path else "untitled"
@@ -422,6 +567,8 @@ class App(tk.Tk):
         state = "normal" if self.lic.valid else "disabled"
         for btn in (self.btn_gen, self.btn_save):
             btn.configure(state=state)
+        self.lic_label.configure(
+            text="" if self.lic.valid else "unlicensed  •  ")
         for i in self.locked_entries:
             self.file_menu.entryconfigure(i, state=state)
         self._set_title()
@@ -571,6 +718,10 @@ class App(tk.Tk):
                      self.en_tree, self.ar_tree, self.chk_tree):
             theme.stripe(tree, p)
         self.svc_canvas.configure(background=p.bg)
+        # the toolbar buttons draw themselves, so the palette has to reach them
+        for btn in (self.btn_gen, self.btn_save,
+                    *self._tool_buttons, *self._svc_buttons):
+            btn.restyle()
 
     # ------------------------------------------------------------------
     def _build_menu(self) -> None:
@@ -622,19 +773,31 @@ class App(tk.Tk):
         bar = ttk.Frame(self, style="Toolbar.TFrame", padding=(8, 7))
         bar.pack(fill="x")
         # the last one is what the whole tool exists for, so it carries the accent
-        for text, cmd in (("Import Excel", self.import_excel),
-                          ("Open ARXML", self.open_arxml),
-                          ("Save JSON", self.save_json),
-                          ("Validate", self.run_validate)):
-            btn = ttk.Button(bar, text=text, command=cmd)
-            btn.pack(side="left", padx=(0, 6))
-            if text == "Save JSON":
-                self.btn_save = btn
-        self.btn_gen = ttk.Button(bar, text="Generate ARXML", style="Accent.TButton",
-                                  command=self.generate_arxml)
-        self.btn_gen.pack(side="left", padx=(6, 0))
+        def sep():
+            ttk.Frame(bar, style="ToolRule.TFrame", width=1).pack(
+                side="left", fill="y", padx=8, pady=3)
+
+        # input, then output, then the one thing the tool exists for
+        for text, ic, cmd in (("Import Excel", "excel", self.import_excel),
+                              ("Open ARXML", "open", self.open_arxml)):
+            b = ToolButton(bar, text, ic, cmd)
+            b.pack(side="left", padx=(0, 2))
+            self._tool_buttons.append(b)
+        sep()
+        self.btn_save = ToolButton(bar, "Save JSON", "save", self.save_json)
+        self.btn_save.pack(side="left", padx=(0, 2))
+        b = ToolButton(bar, "Validate", "check", self.run_validate)
+        b.pack(side="left")
+        self._tool_buttons.append(b)
+        sep()
+        self.btn_gen = ToolButton(bar, "Generate ARXML", "generate",
+                                  self.generate_arxml, accent=True)
+        self.btn_gen.pack(side="left")
+
         self.file_label = ttk.Label(bar, text="(no file)", style="Toolbar.TLabel")
-        self.file_label.pack(side="right")
+        self.file_label.pack(side="right", padx=(8, 2))
+        self.lic_label = ttk.Label(bar, text="", style="ToolbarMuted.TLabel")
+        self.lic_label.pack(side="right")
 
     # ------------------------------------------------------------------
     # tabs
@@ -678,14 +841,22 @@ class App(tk.Tk):
         self.nb.add(tab, text="Services")
         left = ttk.Frame(tab)
         left.pack(side="left", fill="y", padx=(8, 0), pady=8)
-        ttk.Label(left, text="Services", style="Caption.TLabel").pack(anchor="w", pady=(0, 4))
+        cap = ttk.Frame(left)
+        cap.pack(fill="x", pady=(0, 4))
+        ttk.Label(cap, text="Services", style="Caption.TLabel").pack(side="left")
+        ttk.Frame(cap, style="Rule.TFrame", height=1).pack(
+            side="left", fill="x", expand=True, padx=(8, 0), pady=(7, 0))
         self.svc_list = tk.Listbox(left, width=22, exportselection=False)
         self.svc_list.pack(fill="y", expand=True)
         self.svc_list.bind("<<ListboxSelect>>", lambda _e: self._show_service())
         btns = ttk.Frame(left)
-        btns.pack(fill="x", pady=4)
-        ttk.Button(btns, text="Add", width=7, command=self.add_service).pack(side="left")
-        ttk.Button(btns, text="Delete", width=8, command=self.del_service).pack(side="left")
+        btns.pack(fill="x", pady=(6, 0))
+        # next to the list they act on, rather than only in the Edit menu
+        for text, ic, cmd in (("Add", "add", self.add_service),
+                              ("Delete", "delete", self.del_service)):
+            b = ToolButton(btns, text, ic, cmd, compact=True, surface="bg")
+            b.pack(side="left", padx=(0, 4))
+            self._svc_buttons.append(b)
 
         right = ttk.Frame(tab)
         right.pack(side="left", fill="both", expand=True, padx=8, pady=8)
@@ -723,6 +894,8 @@ class App(tk.Tk):
                         ("serializer", "Serializer", 180), ("transport", "Tp", 50)):
             self.ev_tree.heading(c, text=t)
             self.ev_tree.column(c, width=w, anchor="w")
+        _align_columns(self.ev_tree, right=("idx", "payload", "pdu"),
+                       centre=("id", "header", "transport"))
         self.ev_tree.pack(fill="both", expand=True, padx=8, pady=8)
         self.ev_tree.bind("<Double-1>", lambda _e: self.edit_event())
         bar = ttk.Frame(tab)
@@ -742,6 +915,7 @@ class App(tk.Tk):
                         ("tp", "Tp", 50), ("mode", "Routing mode", 120)):
             self.grp_tree.heading(c, text=t)
             self.grp_tree.column(c, width=w, anchor="w")
+        _align_columns(self.grp_tree, right=("idx", "port"), centre=("id", "tp"))
         self.grp_tree.pack(fill="both", expand=True, padx=8, pady=8)
         self.grp_tree.bind("<Double-1>", lambda _e: self.edit_group())
         bar = ttk.Frame(tab)
@@ -829,6 +1003,7 @@ class App(tk.Tk):
         for c, t, w in (("sev", "Severity", 90), ("where", "Where", 260), ("msg", "Message", 800)):
             self.chk_tree.heading(c, text=t)
             self.chk_tree.column(c, width=w, anchor="w")
+        _align_columns(self.chk_tree)
         self.chk_tree.pack(fill="both", expand=True, padx=8, pady=8)
         ttk.Button(tab, text="Re-check", style="Accent.TButton",
                    command=self.run_validate).pack(anchor="w", padx=12, pady=(0, 8))
@@ -875,6 +1050,7 @@ class App(tk.Tk):
     # refresh
     # ------------------------------------------------------------------
     def refresh(self) -> None:
+        self._update_counts()
         self.project_form.load(self.prj)
         keep = self.svc_list.curselection()
         self.svc_list.delete(0, "end")
@@ -1001,6 +1177,9 @@ class App(tk.Tk):
         else:
             self.prj = arxml_io.read(path)
         self.path = path
+        # show it: leaving the window on the previous project is a trap for
+        # anything that calls this outside __init__
+        self.refresh()
 
     def open_arxml(self) -> None:
         path = filedialog.askopenfilename(title="Open ARXML",

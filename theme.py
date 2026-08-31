@@ -24,6 +24,46 @@ BOLD_FONT = ("Segoe UI", 9, "bold")
 HEAD_FONT = ("Segoe UI", 10, "bold")
 MONO_FONT = ("Consolas", 9)
 
+# Windows ships the icon font its own shell draws with, which beats any glyph
+# that can be typed - but only where it exists, so nothing may depend on it.
+ICON_FAMILY = "Segoe MDL2 Assets"
+# private-use code points, written as numbers so the source stays ASCII
+ICONS = {
+    "excel":    chr(0xE9F9),   # sheet with a chart on it
+    "open":     chr(0xED25),   # open folder
+    "save":     chr(0xE74E),   # floppy disk
+    "check":    chr(0xE930),   # tick in a circle
+    "generate": chr(0xE896),   # arrow into a tray
+    "add":      chr(0xE710),   # plus
+    "delete":   chr(0xE74D),   # waste basket
+    "error":    chr(0xEA39),   # cross in a circle
+    "warn":     chr(0xE7BA),   # triangle
+    "info":     chr(0xE946),   # i in a circle
+}
+_HAVE_ICONS: Dict[str, bool] = {}
+
+
+def icon_font(size: int = 12):
+    return (ICON_FAMILY, size)
+
+
+def has_icons(root: tk.Misc) -> bool:
+    """False on a machine without the font, so callers fall back to text."""
+    if "ok" not in _HAVE_ICONS:
+        try:
+            import tkinter.font as tkfont
+            _HAVE_ICONS["ok"] = ICON_FAMILY in set(tkfont.families(root))
+        except Exception:                    # pragma: no cover - exotic build
+            _HAVE_ICONS["ok"] = False
+    return _HAVE_ICONS["ok"]
+
+
+def icon(name: str, root: tk.Misc = None) -> str:
+    """The glyph, or an empty string where the font is missing."""
+    if root is not None and not has_icons(root):
+        return ""
+    return ICONS.get(name, "")
+
 
 class Palette(dict):
     """A colour set; attribute access keeps the call sites readable."""
@@ -62,6 +102,11 @@ LIGHT = Palette(
     xml_attr="#7a4e00",
     xml_value="#0f5c2e",
     xml_comment="#6b7887",
+    # toolbar and grouping
+    card="#f7fafd",          # the panel a form section sits on
+    rule="#c3d0e0",          # hairline under a section heading
+    hover="#dce7f6",         # toolbar button under the pointer
+    press="#c6d9f2",
 )
 
 DARK = Palette(
@@ -90,6 +135,10 @@ DARK = Palette(
     xml_attr="#f0c355",
     xml_value="#8ef2a6",
     xml_comment="#8b96a3",
+    card="#232932",
+    rule="#3c4653",
+    hover="#333d4b",
+    press="#3d4959",
 )
 PALETTES: Dict[str, Palette] = {"light": LIGHT, "dark": DARK}
 
@@ -136,6 +185,18 @@ def apply(root: tk.Misc, mode: str = "light") -> Palette:
                     padding=(8, 4))
     style.configure("Toolbar.TFrame", background=p.raised)
     style.configure("Toolbar.TLabel", background=p.raised, foreground=p.text)
+    style.configure("ToolbarMuted.TLabel", background=p.raised, foreground=p.muted)
+
+    # a hairline: a 1px Frame is the only separator clam draws predictably
+    style.configure("Rule.TFrame", background=p.rule)
+    style.configure("ToolRule.TFrame", background=p.border)
+
+    # a form section: heading strip plus the panel its fields sit on
+    style.configure("Card.TFrame", background=p.card)
+    style.configure("Card.TLabel", background=p.card, foreground=p.text)
+    style.configure("CardMuted.TLabel", background=p.card, foreground=p.muted)
+    style.configure("CardTitle.TLabel", background=p.card, foreground=p.accent,
+                    font=HEAD_FONT)
 
     # -- buttons ------------------------------------------------------------
     style.configure("TButton", background=p.surface, foreground=p.text,
