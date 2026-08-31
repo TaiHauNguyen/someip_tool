@@ -1,4 +1,22 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
 # PyInstaller output - rebuild it with build.bat, do not ship it through git
 build/
 dist/
 *.spec
+
+# editor and OS local state
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+
+# the lock file Excel leaves behind while a workbook is open
+~$*.xlsx
+
+# what bootstrap_zafl.py writes; regenerate it rather than committing it
+*.someip.json
+*.generated.arxml
