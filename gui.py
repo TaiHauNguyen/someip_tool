@@ -142,12 +142,13 @@ class ToolButton(tk.Frame):
 
     def __init__(self, master, text: str, icon_name: str, command,
                  accent: bool = False, compact: bool = False,
-                 surface: str = "raised"):
+                 surface: str = "raised", tint: str = ""):
         p = theme.current()
         self.surface = surface          # the palette key of what it sits on
         super().__init__(master, background=p[surface], cursor="hand2",
                          padx=0, pady=0)
         self.command, self.accent, self.compact = command, accent, compact
+        self.tint = tint                # palette key for the icon, if any
         self._state = "normal"
         self._hover = False
 
@@ -187,6 +188,10 @@ class ToolButton(tk.Frame):
         self.configure(background=bg)
         for w in (self.icon, self.label):
             w.configure(background=bg, foreground=fg)
+        # the icon keeps its own colour while the button is at rest; on
+        # hover or accent the fill takes over and the tint would fight it
+        if self.tint and self._state != "disabled" and not (self.accent or self._hover):
+            self.icon.configure(foreground=p[self.tint])
         self.configure(cursor="arrow" if self._state == "disabled" else "hand2")
 
     def configure_state(self, state: str) -> None:
@@ -516,8 +521,9 @@ class App(tk.Tk):
         self.counts = tk.StringVar(value="")
         sbar = ttk.Frame(self, style="Toolbar.TFrame")
         sbar.pack(fill="x", side="bottom")
-        ttk.Label(sbar, textvariable=self.status, anchor="w",
-                  style="Status.TLabel").pack(side="left", fill="x", expand=True)
+        self.status_label = ttk.Label(sbar, textvariable=self.status, anchor="w",
+                                      style="Status.TLabel")
+        self.status_label.pack(side="left", fill="x", expand=True)
         ttk.Frame(sbar, style="ToolRule.TFrame", width=1).pack(
             side="left", fill="y", pady=4)
         ttk.Label(sbar, textvariable=self.counts, anchor="e",
@@ -539,12 +545,20 @@ class App(tk.Tk):
             self.open_file(initial)
         self.refresh()
         if not self.lic.valid:
-            self.status.set(self.lic.summary()
-                            + "  Generate ARXML and Save JSON are locked.")
+            self._set_status(self.lic.summary()
+                             + "  Generate ARXML and Save JSON are locked.", "warn")
 
     # ------------------------------------------------------------------
     # licensing
     # ------------------------------------------------------------------
+    def _set_status(self, text: str, tone: str = "") -> None:
+        """A result worth colouring: red for errors, amber for warnings, green
+        when a run came back clean.  Anything else stays in the normal ink."""
+        self.status.set(text)
+        p = self.pal
+        self.status_label.configure(
+            foreground={"error": p.error, "warn": p.warn, "ok": p.ok}.get(tone, p.text))
+
     def _update_counts(self) -> None:
         """What is loaded, at a glance, so the tabs need not be counted by hand."""
         svc = self.prj.services
@@ -573,7 +587,7 @@ class App(tk.Tk):
             self.file_menu.entryconfigure(i, state=state)
         self._set_title()
         if announce:
-            self.status.set(self.lic.summary())
+            self._set_status(self.lic.summary(), "warn" if not self.lic.valid else "")
         self._schedule_license_recheck()
 
     def _schedule_license_recheck(self) -> None:
@@ -603,8 +617,8 @@ class App(tk.Tk):
         was = self.lic.valid
         self.refresh_license()
         if was and not self.lic.valid:
-            self.status.set(self.lic.summary()
-                            + "  Generate ARXML and Save JSON are locked.")
+            self._set_status(self.lic.summary()
+                             + "  Generate ARXML and Save JSON are locked.", "warn")
 
     def _licensed_for(self, action: str) -> bool:
         """Re-read before acting: the licence file can change, or expire, while
@@ -706,7 +720,7 @@ class App(tk.Tk):
         self.refresh()
         if self.preview.get("1.0", "1.10").strip():
             self.refresh_preview()
-        self.status.set("Switched to the %s theme." % self.theme_mode.get())
+        self._set_status("Switched to the %s theme." % self.theme_mode.get())
 
     def _restyle(self) -> None:
         """Recolour the classic tk widgets, which ttk styles do not reach."""
@@ -778,15 +792,16 @@ class App(tk.Tk):
                 side="left", fill="y", padx=8, pady=3)
 
         # input, then output, then the one thing the tool exists for
-        for text, ic, cmd in (("Import Excel", "excel", self.import_excel),
-                              ("Open ARXML", "open", self.open_arxml)):
-            b = ToolButton(bar, text, ic, cmd)
+        for text, ic, cmd, tint in (("Import Excel", "excel", self.import_excel, "ic_excel"),
+                                    ("Open ARXML", "open", self.open_arxml, "ic_open")):
+            b = ToolButton(bar, text, ic, cmd, tint=tint)
             b.pack(side="left", padx=(0, 2))
             self._tool_buttons.append(b)
         sep()
-        self.btn_save = ToolButton(bar, "Save JSON", "save", self.save_json)
+        self.btn_save = ToolButton(bar, "Save JSON", "save", self.save_json,
+                                   tint="ic_save")
         self.btn_save.pack(side="left", padx=(0, 2))
-        b = ToolButton(bar, "Validate", "check", self.run_validate)
+        b = ToolButton(bar, "Validate", "check", self.run_validate, tint="ic_check")
         b.pack(side="left")
         self._tool_buttons.append(b)
         sep()
@@ -817,7 +832,7 @@ class App(tk.Tk):
             messagebox.showerror("Invalid value", str(exc))
             return
         self.refresh()
-        self.status.set("Project settings applied.")
+        self._set_status("Project settings applied.", "ok")
 
     def _commit_forms(self) -> bool:
         """Push what is typed in the tab forms into the model.
@@ -852,9 +867,9 @@ class App(tk.Tk):
         btns = ttk.Frame(left)
         btns.pack(fill="x", pady=(6, 0))
         # next to the list they act on, rather than only in the Edit menu
-        for text, ic, cmd in (("Add", "add", self.add_service),
-                              ("Delete", "delete", self.del_service)):
-            b = ToolButton(btns, text, ic, cmd, compact=True, surface="bg")
+        for text, ic, cmd, tint in (("Add", "add", self.add_service, "ic_add"),
+                                    ("Delete", "delete", self.del_service, "ic_delete")):
+            b = ToolButton(btns, text, ic, cmd, compact=True, surface="bg", tint=tint)
             b.pack(side="left", padx=(0, 4))
             self._svc_buttons.append(b)
 
@@ -880,7 +895,7 @@ class App(tk.Tk):
             messagebox.showerror("Invalid value", str(exc))
             return
         self.refresh()
-        self.status.set("Service settings applied.")
+        self._set_status("Service settings applied.", "ok")
 
     def _tab_events(self) -> None:
         tab = ttk.Frame(self.nb)
@@ -1056,6 +1071,11 @@ class App(tk.Tk):
         self.svc_list.delete(0, "end")
         for s in self.prj.services:
             self.svc_list.insert("end", "%s (%s)" % (s.tag or "?", s.role[:4]))
+            # whether a service is offered or consumed governs half of what the
+            # generated file looks like, so it is worth seeing without reading
+            self.svc_list.itemconfigure(
+                "end", foreground=self.pal.role_provider if s.is_provider
+                else self.pal.role_consumer)
         if self.prj.services:
             self.svc_list.selection_set(keep[0] if keep and keep[0] < len(self.prj.services) else 0)
         self._show_service()
@@ -1122,11 +1142,11 @@ class App(tk.Tk):
             text = arxml_gen.generate(self.prj, self.prj.template)
             self.preview.insert("1.0", text)
             coloured = theme.highlight_xml(self.preview, self.pal, text)
-            self.status.set("Preview refreshed."
-                            if coloured else "Preview refreshed (too large to colour).")
+            self._set_status("Preview refreshed."
+                            if coloured else "Preview refreshed (too large to colour).", "ok")
         except Exception as exc:  # noqa: BLE001 - shown to the user
             self.preview.insert("1.0", "Generation failed:\n\n" + traceback.format_exc())
-            self.status.set("Preview failed: %s" % exc)
+            self._set_status("Preview failed: %s" % exc, "error")
 
     # ------------------------------------------------------------------
     # file actions
@@ -1145,12 +1165,12 @@ class App(tk.Tk):
             self.prj = excel_io.import_project(list(paths), self.prj, log=log)
         except Exception as exc:  # noqa: BLE001
             messagebox.showerror("Import failed", traceback.format_exc())
-            self.status.set("Import failed: %s" % exc)
+            self._set_status("Import failed: %s" % exc, "error")
             return
         self.refresh()
         self.run_validate()
-        self.status.set("Imported %d workbook(s): %s" % (
-            len(paths), ", ".join(os.path.basename(p) for p in paths)))
+        self._set_status("Imported %d workbook(s): %s" % (
+            len(paths), ", ".join(os.path.basename(p) for p in paths)), "ok")
         if log:
             self._show_log("Import adjustments", log)
 
@@ -1194,7 +1214,7 @@ class App(tk.Tk):
         self.path = path
         self.refresh()
         self.run_validate()
-        self.status.set("Loaded %s" % os.path.basename(path))
+        self._set_status("Loaded %s" % os.path.basename(path))
 
     def open_json(self) -> None:
         path = filedialog.askopenfilename(title="Open project JSON",
@@ -1208,7 +1228,7 @@ class App(tk.Tk):
             return
         self.path = path
         self.refresh()
-        self.status.set("Loaded %s" % os.path.basename(path))
+        self._set_status("Loaded %s" % os.path.basename(path))
 
     def save_json(self, ask: bool = False) -> None:
         if not self._commit_forms() or not self._licensed_for("save the project JSON"):
@@ -1229,7 +1249,7 @@ class App(tk.Tk):
             return
         self.path = path
         self.refresh()
-        self.status.set("Saved %s" % path)
+        self._set_status("Saved %s" % path, "ok")
 
     def generate_arxml(self) -> None:
         if not self._commit_forms() or not self._licensed_for("generate ARXML"):
@@ -1258,7 +1278,7 @@ class App(tk.Tk):
             messagebox.showerror("Generation failed", traceback.format_exc())
             return
         self.refresh_preview()
-        self.status.set("Generated %s" % path)
+        self._set_status("Generated %s" % path, "ok")
         messagebox.showinfo("Done", "ARXML written to:\n%s" % path)
 
     def run_validate(self) -> None:
@@ -1268,7 +1288,10 @@ class App(tk.Tk):
         for sev, where, msg in issues:
             self.chk_tree.insert("", "end", values=(sev, where, msg),
                                  tags=(sev, _row_tag(self.chk_tree)))
-        self.status.set("Validation: " + validator.summary(issues))
+        errs = sum(1 for sev, _, _ in issues if sev == validator.ERROR)
+        warns = sum(1 for sev, _, _ in issues if sev == validator.WARN)
+        self._set_status("Validation: " + validator.summary(issues),
+                         "error" if errs else ("warn" if warns else "ok"))
         self.nb.select(5)
 
     # ------------------------------------------------------------------

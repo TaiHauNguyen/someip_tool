@@ -107,6 +107,17 @@ LIGHT = Palette(
     rule="#c3d0e0",          # hairline under a section heading
     hover="#dce7f6",         # toolbar button under the pointer
     press="#c6d9f2",
+    # each toolbar icon keeps the colour its own idea is known by, so the row
+    # is scanned by shape and hue rather than read word by word
+    ic_excel="#137a45",      # a spreadsheet is green everywhere
+    ic_open="#a8690a",       # a folder is amber
+    ic_save="#1d4ed8",
+    ic_check="#0d6b6b",
+    ic_add="#0f5c2e",
+    ic_delete="#a3160f",
+    # a service is either offered or consumed, and that governs half the file
+    role_provider="#0f5c2e",
+    role_consumer="#6b21a8",
 )
 
 DARK = Palette(
@@ -139,6 +150,14 @@ DARK = Palette(
     rule="#3c4653",
     hover="#333d4b",
     press="#3d4959",
+    ic_excel="#4ed88b",
+    ic_open="#f0b357",
+    ic_save="#69a6ff",
+    ic_check="#4fd6d6",
+    ic_add="#6fe0a0",
+    ic_delete="#ff8b82",
+    role_provider="#6fe0a0",
+    role_consumer="#d3a4ff",
 )
 PALETTES: Dict[str, Palette] = {"light": LIGHT, "dark": DARK}
 
@@ -235,6 +254,10 @@ def apply(root: tk.Misc, mode: str = "light") -> Palette:
     style.map("TNotebook.Tab",
               background=[("selected", p.surface), ("active", p.raised)],
               foreground=[("selected", p.accent), ("active", p.text)],
+              # clam draws the tab's top edge with `lightcolor`, which is the
+              # only way to give the selected tab a coloured indicator
+              lightcolor=[("selected", p.accent)],
+              bordercolor=[("selected", p.accent)],
               font=[("selected", BOLD_FONT)])
 
     # -- trees --------------------------------------------------------------
