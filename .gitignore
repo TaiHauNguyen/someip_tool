@@ -2,10 +2,8 @@
 __pycache__/
 *.py[cod]
 
-# The licence signing key.  Anyone holding this can issue licences, so it must
-# never be committed, mailed or copied to another machine - back it up offline.
-license_private.json
-# Issued licences belong to one machine each, not in the repository
+# The licence signing key is committed deliberately - see README.md.
+# Issued licences belong to one machine each, so those stay out.
 license.key
 *.license.key
 

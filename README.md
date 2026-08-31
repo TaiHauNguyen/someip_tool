@@ -174,7 +174,7 @@ python build_exe.py --license-tool                 build the issuer itself
 
 | | |
 |---|---|
-| `license_private.json` | **secret.** Whoever holds it can issue licences. Never commit it, never mail it, back it up offline. Git ignores it. |
+| `license_private.json` | signs licences. **Committed to this repository by a deliberate decision** - see the note below. |
 | `license_pubkey.py` | committed, and compiled into the customer build. |
 
 Regenerating the key invalidates every licence already issued and needs the
@@ -195,9 +195,17 @@ same instant on a machine in another timezone.
 
 ### What this does and does not stop
 
-It stops casual copying: the folder handed to one machine will not generate on
-another, and a licence cannot be edited or forged without the private key.
+The signing key is committed here, and this repository is public.  That was a
+deliberate choice, and it has a consequence worth stating plainly: anyone who
+reads the repository can issue a licence for any machine and any date, so the
+check stops accidents and honest mistakes rather than determined copying.  Treat
+it as a reminder of the terms, not as a lock.
 
-It is not tamper-proof against someone who edits the program itself - no
-client-side check can be.  Nor does it survive a MAC address being changed by
-hand, and a network card swap needs a new licence.
+Making it a lock again takes three steps: make the repository private or drop
+the key from it, run `license_tool.py --keygen` to mint a key nobody has seen,
+and rebuild the customer executables so they carry the new public half.  Every
+licence issued under the old key stops working at that point.
+
+Independently of the key, the check is not tamper-proof against someone who
+edits the program itself - no client-side check can be.  Nor does it survive a
+MAC address being changed by hand, and a network card swap needs a new licence.
