@@ -73,9 +73,22 @@ def _quiet_run(cmd: List[str]) -> str:
         return ""
 
 
-def machine_macs() -> List[str]:
+_MAC_CACHE: Optional[List[str]] = None
+
+
+def machine_macs(refresh: bool = False) -> List[str]:
     """Every MAC this machine owns, so a second network card does not
-    invalidate a licence issued against the first."""
+    invalidate a licence issued against the first.
+
+    Cached: reading them shells out to getmac and costs about 200ms, which is
+    worth paying once but not on every button press.  They do not change under
+    a running program in any way that matters - a card appearing can only make
+    a licence valid that was not, and the next start picks that up.
+    """
+    global _MAC_CACHE
+    if _MAC_CACHE is not None and not refresh:
+        return _MAC_CACHE
+
     found = set()
 
     if os.name == "nt":
@@ -101,7 +114,8 @@ def machine_macs() -> List[str]:
     if not (node >> 40) & 1:
         found.add(normalise_mac("%012X" % node))
 
-    return sorted(a for a in found if a not in _BOGUS)
+    _MAC_CACHE = sorted(a for a in found if a not in _BOGUS)
+    return _MAC_CACHE
 
 
 # --------------------------------------------------------------------------

@@ -8,6 +8,7 @@ workbook got wrong, and regenerate the DaVinci Classic ARXML.
 
 from __future__ import annotations
 
+import datetime
 import os
 import sys
 import traceback
@@ -426,6 +427,37 @@ class App(tk.Tk):
         self._set_title()
         if announce:
             self.status.set(self.lic.summary())
+        self._schedule_license_recheck()
+
+    def _schedule_license_recheck(self) -> None:
+        """Grey the two out the moment the licence lapses, rather than leaving
+        buttons that look usable until someone presses one.
+
+        The expiry instant is known, so this waits for it instead of polling;
+        the hourly cap is only there to notice a licence file that changed
+        underneath us, and to keep the delay inside what after() accepts.
+        """
+        if getattr(self, "_recheck_job", None):
+            self.after_cancel(self._recheck_job)
+            self._recheck_job = None
+        delay = 3600.0
+        exp = self.lic.payload.get("exp") if self.lic.valid else None
+        if exp:
+            try:
+                left = (datetime.datetime.strptime(exp, licensing.MINUTE)
+                        .replace(tzinfo=datetime.timezone.utc)
+                        - datetime.datetime.now(datetime.timezone.utc)).total_seconds()
+                delay = min(delay, max(left, 0) + 1)
+            except ValueError:
+                pass
+        self._recheck_job = self.after(int(delay * 1000), self._on_recheck)
+
+    def _on_recheck(self) -> None:
+        was = self.lic.valid
+        self.refresh_license()
+        if was and not self.lic.valid:
+            self.status.set(self.lic.summary()
+                            + "  Generate ARXML and Save JSON are locked.")
 
     def _licensed_for(self, action: str) -> bool:
         """Re-read before acting: the licence file can change, or expire, while
