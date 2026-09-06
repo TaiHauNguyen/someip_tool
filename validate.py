@@ -53,6 +53,7 @@ def validate(prj: Project) -> List[Tuple[str, str, str]]:
             ports[s.udp_port] = s.tag
 
     out.extend(_validate_shared_type_names(prj))
+    out.extend(_validate_enum_constants(prj))
 
     for s in prj.services:
         out.extend(_validate_service(prj, s))
@@ -92,6 +93,41 @@ def _validate_shared_type_names(prj: Project) -> List[Tuple[str, str, str]]:
                             "services share one /DataTypes package, so the generated "
                             "file can only carry one of the two."
                             % (obj.name, first[0])))
+    return out
+
+
+def _validate_enum_constants(prj: Project) -> List[Tuple[str, str, str]]:
+    """Two enums may not put the same constant into the generated code.
+
+    The <VT> of a literal becomes a global C constant, and DaVinci rejects the
+    import with "Multiple enumeration constants defined with the same name".
+    It is easy to hit once several databases are imported side by side, because
+    the text is derived from the enum name: 'ACUCrashStsType' and
+    'AcuCrashStsType' both give ACU_CRASH_STS_NO_EVENT.  Renaming here would
+    only move the problem - a name invented to break the tie would differ from
+    one generated file to the next - so the workbook has to settle it, either
+    by renaming the enum or by giving the literal its own <VT> text.
+    """
+    out: List[Tuple[str, str, str]] = []
+    owner: Dict[str, Tuple[str, str]] = {}      # vt -> (enum name, service tag)
+    seen_enum: set = set()
+    for s in prj.services:
+        for en in s.enums:
+            if en.name in seen_enum:
+                continue                        # one declaration is emitted, not two
+            seen_enum.add(en.name)
+            for lit in en.literals:
+                vt = lit.vt or lit.name
+                if not vt:
+                    continue
+                first = owner.get(vt)
+                if first is None:
+                    owner[vt] = (en.name, s.tag)
+                elif first[0] != en.name:
+                    out.append((ERROR, "%s / %s.%s" % (s.tag, en.name, lit.name),
+                                "Constant '%s' is already produced by enum '%s' (%s). "
+                                "Rename one of the two enums, or give this literal its "
+                                "own <VT> text." % (vt, first[0], first[1])))
     return out
 
 

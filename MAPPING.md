@@ -186,13 +186,26 @@ compu scale carrying the field's `MASK`:
   <CATEGORY>BITFIELD_TEXTTABLE</CATEGORY>
   ...
     <COMPU-SCALE>                              <!-- ACU_Crash_Sts, byte2 [2:1] -->
-      <SHORT-LABEL>ACU_Crash_Sts_ACU_CRASH_STS_CRASH_DETECTED</SHORT-LABEL>
-      <SYMBOL>ACU_Crash_Sts_ACU_CRASH_STS_CRASH_DETECTED</SYMBOL>
+      <SHORT-LABEL>ACUCrashInfoStruct_ACU_CRASH_STS_CRASH_DETECTED</SHORT-LABEL>
+      <SYMBOL>ACUCrashInfoStruct_ACU_CRASH_STS_CRASH_DETECTED</SYMBOL>
       <MASK>6</MASK>                           <!-- 0b00000110: which bits -->
       <LOWER-LIMIT INTERVAL-TYPE="CLOSED">2</LOWER-LIMIT>   <!-- value in place -->
       <UPPER-LIMIT INTERVAL-TYPE="CLOSED">2</UPPER-LIMIT>
     </COMPU-SCALE>
 ```
+
+**Naming.** The label is `<struct>_<the literal's VT>`, not the bare VT.  It
+becomes a global C constant, and DaVinci refuses the same `SHORT-LABEL` twice
+in one workspace - which may hold several separately generated ARXMLs, so a
+counter that only sees the file being written is not enough: a provider and a
+consumer would each emit `ACU_CRASH_STS_CRASH_DETECTED` for their own struct.
+Deriving it from the struct makes it deterministic instead: the same input
+gives the same name whatever is generated beside it, and two services that
+really share a struct share the constants too, so DaVinci merges them.
+
+An enum's own `TEXTTABLE` compu method is emitted only when some member still
+points at it.  A bit field's enum is folded into its byte, so emitting the
+enum as well would leave an enumeration in the workspace that nothing uses.
 
 `MASK` is the field's bit range (`((1 << width) - 1) << shift`), shared by every
 scale of that field; `LOWER-LIMIT` = `UPPER-LIMIT` is the literal value shifted

@@ -301,7 +301,7 @@ class Builder:
                 continue
             for lit in en.literals:
                 value = lit.value << pos
-                label = self._bitfield_symbol(mm, lit)
+                label = self._bitfield_symbol(struct_name, byte_name, mm, lit)
                 scales.append({
                     "label": label, "symbol": label,
                     "mask": ((1 << mm.bit_size) - 1) << pos,
@@ -331,24 +331,30 @@ class Builder:
             node["calibration"] = None
         return node
 
-    def _bitfield_symbol(self, member: StructMember, lit) -> str:
+    def _bitfield_symbol(self, struct_name: str, byte_name: str,
+                         member: StructMember, lit) -> str:
         """The C identifier one compu scale becomes.
 
-        The literal's own <VT> is what the enum would have been called, and it
-        already carries the enum name, so it is both short and recognisable.
-        Qualify it only when the same enum feeds two different fields, where
-        the two really are different constants - they sit at different bit
-        positions.
+        DaVinci refuses the same ShortLabel twice, and the workspace it refuses
+        it in may hold several imported ARXMLs - so a counter that only sees
+        the file being written is not enough: a provider and a consumer
+        generated separately would both emit `ACU_CRASH_STS_CRASH_DETECTED` for
+        their own struct.  The name is therefore derived from the struct, which
+        has to be unique anyway because every struct lands in the same
+        /DataTypes package.  Same input, same name, whatever else is generated
+        alongside it.
         """
         base = lit.vt or lit.name
-        for cand in (base, "%s_%s" % (member.name, base)):
+        for cand in ("%s_%s" % (struct_name, base),
+                     "%s_%s_%s" % (struct_name, byte_name, base),
+                     "%s_%s_%s" % (struct_name, member.name, base)):
             if cand not in self._bitfield_symbols:
                 self._bitfield_symbols.add(cand)
                 return cand
         n = 2
-        while "%s_%d" % (base, n) in self._bitfield_symbols:
+        while "%s_%s_%d" % (struct_name, base, n) in self._bitfield_symbols:
             n += 1
-        cand = "%s_%d" % (base, n)
+        cand = "%s_%s_%d" % (struct_name, base, n)
         self._bitfield_symbols.add(cand)
         return cand
 
