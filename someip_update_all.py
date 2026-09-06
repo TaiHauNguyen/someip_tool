@@ -154,8 +154,10 @@ def main(argv=None):
     # tuy chon chuyen tiep cho tung tool
     ap.add_argument("--no-reserved", action="store_true",
                     help="[struct] bo cac element Reserved_n")
-    ap.add_argument("--fix-serializer", action="store_true",
-                    help="[events] sua luon cot Serializer")
+    ap.add_argument("--no-fix-serializer", action="store_true",
+                    help="[events] KHONG dong bo Serializer theo ParameterType")
+    ap.add_argument("--strict-datastructures", action="store_true",
+                    help="[events] bo qua dong khong co datatype trong DataStructures")
     ap.add_argument("--payload-extra", type=int, default=0,
                     help="[events] cong them N byte vao PayloadLengthBytes")
     a = ap.parse_args(argv)
@@ -238,8 +240,10 @@ def main(argv=None):
                       "Dung --continue-on-error de van chay tiep." % st_rc)
             else:
                 argv2 = ["--excel", target, "--dbc"] + dbcs
-                if a.fix_serializer:
-                    argv2.append("--fix-serializer")
+                if a.no_fix_serializer:
+                    argv2.append("--no-fix-serializer")
+                if a.strict_datastructures:
+                    argv2.append("--strict-datastructures")
                 if a.payload_extra:
                     argv2 += ["--payload-extra", str(a.payload_extra)]
                 if a.dry_run:

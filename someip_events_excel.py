@@ -45,7 +45,9 @@ except ImportError:  # pragma: no cover
     sys.exit("Can openpyxl: python -m pip install openpyxl")
 
 from dbc_struct import parse_dbc, build_layout
-from dbc_bitfield_excel import struct_type_name
+from dbc_bitfield_excel import struct_type_name, SheetMap
+
+STRUCT_SHEET = "DataStructures"
 
 SHEET_NAME = "Events"
 
@@ -230,18 +232,93 @@ RE_CAN_IN_DESC = re.compile(r"CAN\s*:\s*([A-Za-z_]\w*)", re.I)
 
 
 def signals_in_desc(text):
-    """Tach danh sach signal trong 'CAN: MSG; SIG1; SIG2; ECU: ACM'."""
+    """Tach danh sach signal trong Description.
+
+    Ho tro ca hai dang:
+        'CAN: MSG; SIG1; SIG2; ECU: ACM'
+        'CAN: MSG.SIG1; SIG2; ECU: ACM'      <- signal dau dinh sau dau cham
+    Bo qua token khong phai ten signal (so, khoang gia tri, chu thich trong ngoac).
+    """
     if not text:
         return []
-    parts = [p.strip() for p in str(text).split(";")]
+    s = re.sub(r"\([^)]*\)", " ", str(text))          # bo phan trong ngoac
     out = []
-    for i, p in enumerate(parts):
-        if i == 0 or not p:
+    for i, raw in enumerate(s.split(";")):
+        p = raw.strip()
+        if not p:
+            continue
+        if i == 0:
+            m = re.match(r"^CAN\s*:\s*[A-Za-z_]\w*\.([A-Za-z_]\w*)\s*$", p, re.I)
+            if m:                                     # 'CAN: MSG.SIG1'
+                out.append(m.group(1))
             continue
         if re.match(r"^(ECU|CAN)\s*:", p, re.I):
             continue
+        if not re.match(r"^[A-Za-z_]\w*$", p):        # so, dai gia tri, ghi chu...
+            continue
         out.append(p)
     return out
+
+
+def read_struct_types(wb, sheet_name, warn):
+    """Doc sheet DataStructures -> ({can_message: struct_name}, [struct_name, ...]).
+
+    Ten struct lay DUNG NHU DANG GHI trong sheet (khong tu chuan hoa hoa/thuong),
+    vi ParameterType phai tham chieu chinh xac datatype dang khai bao o do.
+    """
+    if sheet_name not in wb.sheetnames:
+        warn("Workbook khong co sheet '%s' - ParameterType se sinh tu ten message"
+             % sheet_name)
+        return {}, []
+    ws = wb[sheet_name]
+    try:
+        smap = SheetMap(ws, verbose=False)
+    except Exception as e:
+        warn("Khong do duoc cot cua sheet '%s' (%s) - ParameterType se sinh tu ten message"
+             % (sheet_name, e))
+        return {}, []
+
+    by_msg, names, cur = {}, [], None
+    for row in range(smap.first_data_row, ws.max_row + 1):
+        nm = ws.cell(row, smap.struct["name"]).value
+        if isinstance(nm, str) and nm.strip():
+            cur = nm.strip()
+            if cur not in names:
+                names.append(cur)
+        desc = ws.cell(row, smap.struct["description"]).value
+        if cur and isinstance(desc, str):
+            m = re.match(r"\s*([A-Za-z_]\w*)\s*\.", desc)
+            if m:
+                msg_name = m.group(1)
+                if by_msg.setdefault(msg_name, cur) != cur:
+                    warn("DataStructures: message %s duoc tham chieu boi 2 struct "
+                         "(%s, %s), giu '%s'"
+                         % (msg_name, by_msg[msg_name], cur, by_msg[msg_name]))
+    return by_msg, names
+
+
+def datatype_for(msg, ds_by_msg, ds_names, warn, strict):
+    """ParameterType cho mot message: uu tien ten dang co trong DataStructures."""
+    ds_type = ds_by_msg.get(msg.name)
+    if ds_type:
+        return ds_type, "DataStructures"
+
+    gen = struct_type_name(msg.name)
+    if gen in ds_names:
+        return gen, "DataStructures (theo ten struct)"
+
+    low = dict((n.lower(), n) for n in ds_names)
+    if gen.lower() in low:
+        real = low[gen.lower()]
+        warn("%s: DataStructures ghi '%s', ten sinh tu DBC la '%s' - dung ban trong sheet"
+             % (msg.name, real, gen))
+        return real, "DataStructures (khac hoa/thuong)"
+
+    if strict:
+        return None, ("khong thay datatype cho %s trong DataStructures" % msg.name)
+    warn("%s: khong thay datatype tuong ung trong DataStructures, tam dung '%s'"
+         % (msg.name, gen))
+    return gen, "sinh tu ten message"
 
 
 def resolve_message(row_vals, by_name, by_struct):
@@ -301,8 +378,15 @@ def main(argv=None):
     ap.add_argument("--dry-run", action="store_true", help="chi in, khong ghi file")
     ap.add_argument("--payload-extra", type=int, default=0, metavar="N",
                     help="cong them N byte vao PayloadLengthBytes (mac dinh 0 = dung DLC)")
+    ap.add_argument("--struct-sheet", default=STRUCT_SHEET,
+                    help="sheet chua khai bao datatype (mac dinh: %s)" % STRUCT_SHEET)
+    ap.add_argument("--no-fix-serializer", action="store_true",
+                    help="KHONG dong bo Serializer theo ParameterType (mac dinh la co)")
     ap.add_argument("--fix-serializer", action="store_true",
-                    help="sua luon cot Serializer cho bang ParameterType")
+                    help=argparse.SUPPRESS)          # giu de tuong thich, mac dinh da bat
+    ap.add_argument("--strict-datastructures", action="store_true",
+                    help="bo qua dong khong tim thay datatype trong sheet DataStructures "
+                         "thay vi sinh ten tu message")
     ap.add_argument("--dump-header", action="store_true",
                     help="in 8 dong dau cua sheet roi thoat (chan doan cot)")
     ap.add_argument("--cols", help="chi dinh tay cot, vd: name=B,payloadlengthbytes=D,"
@@ -342,9 +426,13 @@ def main(argv=None):
     for m in by_name.values():
         by_struct.setdefault(struct_type_name(m.name), m)
 
+    ds_by_msg, ds_names = read_struct_types(wb, a.struct_sheet, warn)
+
     print("Sheet   : %s" % a.sheet)
     print(emap.describe())
     print("DBC     : %d message" % len(by_name))
+    print("Datatype: %d struct trong sheet %s (%d struct co gan voi CAN message)"
+          % (len(ds_names), a.struct_sheet, len(ds_by_msg)))
     print()
 
     col = emap.col
@@ -377,7 +465,11 @@ def main(argv=None):
             unresolved.append((row, ev_name, how))
             continue
 
-        want_type = struct_type_name(msg.name)
+        want_type, src = datatype_for(msg, ds_by_msg, ds_names, warn,
+                                      a.strict_datastructures)
+        if want_type is None:
+            unresolved.append((row, ev_name, src))
+            continue
         want_len = payload_bytes(msg, warn) + a.payload_extra
 
         # --- PayloadLengthBytes
@@ -403,12 +495,12 @@ def main(argv=None):
             cur_ser = row_vals.get("serializer")
             cur_ser_s = str(cur_ser).strip() if cur_ser is not None else ""
             if cur_ser_s != want_type:
-                if a.fix_serializer:
+                if a.no_fix_serializer:
+                    warn("dong %d: Serializer='%s' khac ParameterType='%s' (khong sua)"
+                         % (row, cur_ser_s, want_type))
+                else:
                     changes.append((row, "Serializer", cur_ser, want_type,
                                     col["serializer"]))
-                else:
-                    warn("dong %d: Serializer='%s' khac ParameterType='%s' "
-                         "(dung --fix-serializer de sua)" % (row, cur_ser_s, want_type))
 
         # --- doi chieu danh sach signal trong Description
         listed = signals_in_desc(row_vals.get("description"))
@@ -423,8 +515,8 @@ def main(argv=None):
                 warn("dong %d (%s): Description thieu signal cua DBC: %s"
                      % (row, msg.name, ", ".join(miss)))
 
-        print("row %-4d %-38s -> %-14s DLC=%-3d %s  [%s]"
-              % (row, ev_name, msg.name, msg.dlc, want_type, how))
+        print("row %-4d %-38s -> %-22s DLC=%-3d %-26s [%s / %s]"
+              % (row, ev_name, msg.name, msg.dlc, want_type, how, src))
 
     print()
     if unresolved:
