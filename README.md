@@ -90,9 +90,11 @@ template* field on the Project tab, or `--template` on the CLI.
 
 Handles: any number of services and workbooks, provider and consumer roles,
 several events per group, several event groups per service **including groups
-that go to different ECUs**, nested structs, enums, bit field members
-(`uint8_t : 4` in the Type column, as `dbc_bitfield_excel.py` writes them), and
-both DataStructures sheet layouts.
+that go to different ECUs**, nested structs, enums, CAN bit field members
+(`uint8_t : 4` in the Type column, as `dbc_bitfield_excel.py` writes them -
+packed into one `Byte<n>` member per byte with a `BITFIELD_TEXTTABLE` compu
+method, which is the only bit level construct DaVinci Developer supports; see
+section 5 of `MAPPING.md`), and both DataStructures sheet layouts.
 
 Not handled yet - the validator reports an error rather than writing a wrong
 file: **TCP transport** (only `UDP-TP` sockets are generated) and SOME/IP

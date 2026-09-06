@@ -8,9 +8,15 @@
 
   <!-- One IMPLEMENTATION-DATA-TYPE-ELEMENT; recurses for nested structs.
        Child order follows the AUTOSAR schema: ARRAY-SIZE* then SUB-ELEMENTS
-       then SW-DATA-DEF-PROPS.  Inside SW-DATA-DEF-PROPS-CONDITIONAL the schema
-       puts SW-BIT-REPRESENTATION straight after BASE-TYPE-REF; it is what makes
-       DaVinci emit the member as a C bit field (`uint8 x : 4;`). -->
+       then SW-DATA-DEF-PROPS.
+
+       There is deliberately no per-member bit width here (no
+       SW-BIT-REPRESENTATION): DaVinci Developer's Data Types editor has no
+       such attribute on a Record Element, and its RTE generator always emits
+       a plain `typedef`, never a C bit field, for one - see
+       view_model.Builder._struct_children() for where a run of CAN-signal
+       bit fields is packed into one byte-wide member instead, the way this
+       project's own DataTypes.arxml already does it (Dem_UdsStatusByteType). -->
   <IMPLEMENTATION-DATA-TYPE-ELEMENT t-def="implElement" UUID="${uuid(node.path)}">
     <SHORT-NAME>${node.name}</SHORT-NAME>
     <CATEGORY>${node.category}</CATEGORY>
@@ -23,9 +29,6 @@
       <SW-DATA-DEF-PROPS-VARIANTS>
         <SW-DATA-DEF-PROPS-CONDITIONAL>
           <BASE-TYPE-REF t-if="node.base_ref" DEST="SW-BASE-TYPE">${node.base_ref}</BASE-TYPE-REF>
-          <SW-BIT-REPRESENTATION t-if="node.bit_size">
-            <NUMBER-OF-BITS t-text="node.bit_size"/>
-          </SW-BIT-REPRESENTATION>
           <SW-CALIBRATION-ACCESS t-if="node.calibration">${node.calibration}</SW-CALIBRATION-ACCESS>
           <COMPU-METHOD-REF t-if="node.compu_ref" DEST="COMPU-METHOD">${node.compu_ref}</COMPU-METHOD-REF>
           <DATA-CONSTR-REF t-if="node.constr_ref" DEST="DATA-CONSTR">${node.constr_ref}</DATA-CONSTR-REF>
@@ -288,18 +291,29 @@
         <AR-PACKAGE UUID="${uuid('/DataTypes/CompuMethods')}">
           <SHORT-NAME>CompuMethods</SHORT-NAME>
           <ELEMENTS>
+            <!-- Two shapes share this loop: a plain enum (TEXTTABLE, one
+                 COMPU-CONST/VT per literal) and a packed byte
+                 (BITFIELD_TEXTTABLE, one SYMBOL+MASK per named sub-value -
+                 see view_model.Builder._bitfield_byte_node()). -->
             <COMPU-METHOD t-foreach="compu_methods as cm" UUID="${uuid(cm.path)}">
               <SHORT-NAME>${cm.name}</SHORT-NAME>
-              <CATEGORY>TEXTTABLE</CATEGORY>
+              <CATEGORY>${cm.category}</CATEGORY>
               <COMPU-INTERNAL-TO-PHYS>
                 <COMPU-SCALES>
-                  <COMPU-SCALE t-foreach="cm.scales as scale">
+                  <COMPU-SCALE t-foreach="cm.scales as scale" t-if="cm.category != 'BITFIELD_TEXTTABLE'">
                     <SHORT-LABEL>${scale.label}</SHORT-LABEL>
                     <LOWER-LIMIT INTERVAL-TYPE="CLOSED" t-text="scale.lower"/>
                     <UPPER-LIMIT INTERVAL-TYPE="CLOSED" t-text="scale.upper"/>
                     <COMPU-CONST>
                       <VT>${scale.vt}</VT>
                     </COMPU-CONST>
+                  </COMPU-SCALE>
+                  <COMPU-SCALE t-foreach="cm.scales as scale" t-if="cm.category == 'BITFIELD_TEXTTABLE'">
+                    <SHORT-LABEL>${scale.label}</SHORT-LABEL>
+                    <SYMBOL>${scale.symbol}</SYMBOL>
+                    <MASK t-text="scale.mask"/>
+                    <LOWER-LIMIT INTERVAL-TYPE="CLOSED" t-text="scale.lower"/>
+                    <UPPER-LIMIT INTERVAL-TYPE="CLOSED" t-text="scale.upper"/>
                   </COMPU-SCALE>
                 </COMPU-SCALES>
               </COMPU-INTERNAL-TO-PHYS>

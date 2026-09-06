@@ -145,42 +145,76 @@ Members are emitted as `IMPLEMENTATION-DATA-TYPE-ELEMENT`:
 Type name translation: `float → float32`, `double → float64`, `uint8_t → uint8`,
 `uint32_t → uint32`, `int8_t → sint8`, `boolean → boolean`.
 
-#### Bit fields
+#### Bit fields → one byte-wide member per byte
 
 A Type cell written as `<type> : <n>` - `uint8_t : 4`, `ACUCrashStsType : 2` -
-declares a **C bit field** `n` bits wide.  This is what `dbc_bitfield_excel.py`
-writes when it turns a CAN message into a struct that maps 1:1 onto the frame,
+declares a field `n` bits wide.  This is what `dbc_bitfield_excel.py` writes
+when it turns a CAN message into a struct that maps 1:1 onto the frame,
 padding included (`Reserved_1`, `Reserved_2`, …).
 
-The width is not part of the type: the type still resolves against the base
-type, enum and struct tables exactly as above, and the member gains a
-`SW-BIT-REPRESENTATION` in its `SW-DATA-DEF-PROPS-CONDITIONAL`, right after
-`BASE-TYPE-REF` - the position the AUTOSAR schema gives it:
+**These do not become C bit fields in the ARXML, and must not.**  Three
+independent constraints say so:
+
+| | |
+|---|---|
+| DaVinci Developer | A Record Element has no bit width attribute at all (Technical Reference *AUTOSAR 4.4 - Data Types*, §2.2.2 lists every attribute; `DaVinciDEV01.chm` never mentions one either).  Its RTE always emits a plain `typedef` (§6, §7.4), never `x : 4`. |
+| `SW-BIT-REPRESENTATION` | Schema-valid (it sits right after `BASE-TYPE-REF` in `AUTOSAR_4-0-0-DAI-1.xsd`) but nothing in DaVinci Developer reads it - a file carrying it imports cleanly and comes out looking like plain bytes. |
+| SOME/IP | The transformer serializes every primitive member at its full base type width.  Sub-byte packing does not exist on the wire, so a member per signal could never reproduce the CAN byte layout anyway. |
+
+The one bit-level construct DaVinci Developer really supports is a compu method
+of category `BITFIELD_TEXTTABLE` on a **whole byte** - exactly what
+`/Predefined_DEV/CompuMethods/Dem_UdsStatusByteType` in this project's own
+`DataTypes.arxml` does.  So a run of consecutive bit fields is packed here into
+**one `uint8` member named `Byte<n>`**, and each named sub-value becomes one
+compu scale carrying the field's `MASK`:
 
 ```xml
-<SW-DATA-DEF-PROPS-CONDITIONAL>
-  <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/uint8</BASE-TYPE-REF>
-  <SW-BIT-REPRESENTATION>
-    <NUMBER-OF-BITS>2</NUMBER-OF-BITS>
-  </SW-BIT-REPRESENTATION>
-  <COMPU-METHOD-REF DEST="COMPU-METHOD">/DataTypes/CompuMethods/ACUCrashStsType</COMPU-METHOD-REF>
-  <DATA-CONSTR-REF DEST="DATA-CONSTR">/DataTypes/DataConstraints/ACUCrashStsconst</DATA-CONSTR-REF>
-</SW-DATA-DEF-PROPS-CONDITIONAL>
+<IMPLEMENTATION-DATA-TYPE-ELEMENT>
+  <SHORT-NAME>Byte2</SHORT-NAME>
+  <CATEGORY>VALUE</CATEGORY>
+  <SW-DATA-DEF-PROPS><SW-DATA-DEF-PROPS-VARIANTS><SW-DATA-DEF-PROPS-CONDITIONAL>
+    <BASE-TYPE-REF DEST="SW-BASE-TYPE">/AUTOSAR_Platform/BaseTypes/uint8</BASE-TYPE-REF>
+    <COMPU-METHOD-REF DEST="COMPU-METHOD">/DataTypes/CompuMethods/ACUCrashInfoStruct_Byte2</COMPU-METHOD-REF>
+    <DATA-CONSTR-REF DEST="DATA-CONSTR">/DataTypes/DataConstraints/ACUCrashInfoStruct_Byte2</DATA-CONSTR-REF>
+  </SW-DATA-DEF-PROPS-CONDITIONAL></SW-DATA-DEF-PROPS-VARIANTS></SW-DATA-DEF-PROPS>
+</IMPLEMENTATION-DATA-TYPE-ELEMENT>
 ```
 
-DaVinci then emits the member as `uint8 ACU_Crash_Sts : 2;`.  Only
-`NUMBER-OF-BITS` is written, never `BIT-POSITION`: the members are already in
-frame order, so the compiler's own packing puts them where the frame wants
-them, and a hand written position would only be able to contradict it.
+```xml
+<COMPU-METHOD>
+  <SHORT-NAME>ACUCrashInfoStruct_Byte2</SHORT-NAME>
+  <CATEGORY>BITFIELD_TEXTTABLE</CATEGORY>
+  ...
+    <COMPU-SCALE>                              <!-- ACU_Crash_Sts, byte2 [2:1] -->
+      <SHORT-LABEL>ACU_Crash_Sts_ACU_CRASH_STS_CRASH_DETECTED</SHORT-LABEL>
+      <SYMBOL>ACU_Crash_Sts_ACU_CRASH_STS_CRASH_DETECTED</SYMBOL>
+      <MASK>6</MASK>                           <!-- 0b00000110: which bits -->
+      <LOWER-LIMIT INTERVAL-TYPE="CLOSED">2</LOWER-LIMIT>   <!-- value in place -->
+      <UPPER-LIMIT INTERVAL-TYPE="CLOSED">2</UPPER-LIMIT>
+    </COMPU-SCALE>
+```
+
+`MASK` is the field's bit range (`((1 << width) - 1) << shift`), shared by every
+scale of that field; `LOWER-LIMIT` = `UPPER-LIMIT` is the literal value shifted
+into position.  The RTE turns each scale into a `#define`, so application code
+masks and shifts to read a signal.  Bits are filled MSB first, matching the
+Motorola order the DBC importer writes.
+
+**Which members stay whole.** A member with no width, or one exactly `: 8` wide,
+keeps its own name and type - only sub-byte fields are merged.  So
+`ACUCrashInfoStruct` becomes `CRC_ACU_CRASH_INFO`, `Byte1` … `Byte4`,
+`Reserved_4` … `Reserved_6`: **8 members, 8 bytes, the CAN frame unchanged.**
 
 **Size.** A run of consecutive bit fields counts as `ceil(sum of bits / 8)`
 bytes, not one storage unit per member; a non bit field member closes the run.
-So the 16 members of `ACUCrashInfoStruct` (8+4+4+3+2+2+1+2+2+2+2+6+2+8+8+8 = 64
+So the 16 rows of `ACUCrashInfoStruct` (8+4+4+3+2+2+1+2+2+2+2+6+2+8+8+8 = 64
 bits) are 8 bytes, which is what `PayloadLengthBytes` must say.
 
 **Checks** (`validate.py`): a width wider than its storage type, a bit field
 over a float or over a struct or array, and a run whose bits do not add up to
-whole bytes are all reported.
+whole bytes are reported.  A sub-byte field with no enum gets an INFO: it has no
+named values, so it gets no compu scale and its name does not reach the ARXML -
+only its bits are held.
 
 ### Array block (**Data Types** tab → *Arrays*)
 

@@ -244,21 +244,31 @@ def _validate_service(prj: Project, s: Service) -> List[Tuple[str, str, str]]:
 
 
 def _check_bit_field(s: Service, m, w) -> List[Tuple[str, str, str]]:
-    """A C bit field only works over an integer that is wide enough."""
+    """A bit field only works over an integer that is wide enough."""
     out: List[Tuple[str, str, str]] = []
     storage = m.type
     en = s.find_enum(m.type)
     if en is not None:
         storage = en.base_type
     elif s.find_struct(m.type) is not None or s.find_array(m.type) is not None:
-        out.append((ERROR, w, "'%s' is a struct or an array, which C cannot "
-                              "declare as a bit field." % m.type))
+        out.append((ERROR, w, "'%s' is a struct or an array, which cannot be "
+                              "a bit field." % m.type))
         return out
+    elif m.bit_size != 8 and not m.name.lower().startswith("reserved"):
+        # A field narrower than its byte is merged into one byte-wide member
+        # whose BITFIELD_TEXTTABLE can only name discrete values - so without
+        # an enum it gets no compu scale and its name is not in the ARXML at
+        # all.  Padding is meant to disappear; a real signal is worth saying
+        # out loud.  (A full 8 bit field stays a member of its own.)
+        out.append((INFO, w, "Bit field has no enum, so it gets no named scale in "
+                             "the byte's BITFIELD_TEXTTABLE and its name does not "
+                             "reach the ARXML; only its %d bits are reserved."
+                    % m.bit_size))
     width = base_type_size_bits(storage)
     if not width:
         return out                      # unknown type: already reported above
     if storage in ("float", "float32", "double", "float64"):
-        out.append((ERROR, w, "C has no floating point bit field; drop the "
+        out.append((ERROR, w, "A floating point bit field is not possible; drop the "
                               "': %d' from the Type column." % m.bit_size))
     elif m.bit_size > width:
         out.append((ERROR, w, "Bit field is %d bits wide but '%s' only holds %d."

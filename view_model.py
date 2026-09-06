@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 from naming import Endpoint, Names, SocketPlan, uuid_for
 from someip_model import (
     BASE_TYPES, SD_HEADER_ID, EnumType, Event, EventGroup, Project, Service,
-    StructType, base_type_name, parse_int,
+    StructMember, StructType, base_type_name, parse_int,
 )
 
 BASE_TYPE_BY_AR_NAME: Dict[str, tuple] = {}
@@ -32,6 +32,12 @@ class Builder:
     def __init__(self, prj: Project, n: Names, plan: SocketPlan):
         self.prj, self.n, self.plan = prj, n, plan
         self.fibex: List[Dict[str, str]] = []
+        # populated by _struct_children() while _impl_types() walks the
+        # structs, consumed by _compu_methods()/_data_constrs() right after -
+        # see the note there for why a byte-wide BITFIELD_TEXTTABLE compu
+        # method belongs there and not on the member itself.
+        self._bitfield_compus: List[Dict[str, Any]] = []
+        self._bitfield_constrs: List[Dict[str, Any]] = []
 
     # ------------------------------------------------------------------
     def build(self) -> Dict[str, Any]:
@@ -185,8 +191,7 @@ class Builder:
         out.append({
             "name": st.name, "path": path, "category": "STRUCTURE",
             "calibration": "READ-ONLY", "type_emitter": "RTE",
-            "children": [self._impl_node(s, m.name, m.type, path, set(), m.bit_size)
-                         for m in st.members],
+            "children": self._struct_children(s, st.name, st.members, path),
         })
 
     def _emit_array_type(self, s: Service, name: str, out: List[Dict[str, Any]],
@@ -219,6 +224,91 @@ class Builder:
             if nested is not None and m.type not in guard:
                 self._emit_member_arrays(s, nested, out, seen, guard | {m.type})
 
+    def _struct_children(self, s: Service, struct_name: str,
+                         members: List[StructMember], path: str,
+                         seen: set = frozenset()) -> List[Dict[str, Any]]:
+        """SUB-ELEMENTS for a struct (or an inlined nested struct).
+
+        DaVinci Developer has no notion of a struct member narrower than its
+        own base type: the AR4 Data Types reference never mentions a "number
+        of bits" attribute on a Record Element, and the RTE always emits a
+        plain `typedef`, never a C bit field, for one. The only bit-level
+        construct it actually supports is a BITFIELD_TEXTTABLE compu method
+        on a *whole* byte - see /Predefined_DEV/CompuMethods/
+        Dem_UdsStatusByteType already used elsewhere in this project's own
+        DataTypes.arxml. So a run of consecutive CAN-signal bit fields (Type
+        column "uint8_t : 4" and friends) is packed here into one byte-wide
+        VALUE member with one compu scale per named sub-value, instead of one
+        member per signal.
+        """
+        out: List[Dict[str, Any]] = []
+        i, n = 0, len(members)
+        byte_index = 0
+        while i < n:
+            m = members[i]
+            if not m.bit_size or m.bit_size == 8:
+                out.append(self._impl_node(s, m.name, m.type, path, seen))
+                byte_index += max(1, s.struct_size(m.type))
+                i += 1
+                continue
+            run = []
+            bits = 0
+            while i < n and members[i].bit_size and bits + members[i].bit_size <= 8:
+                run.append(members[i])
+                bits += members[i].bit_size
+                i += 1
+            out.append(self._bitfield_byte_node(s, struct_name, run, byte_index, path))
+            byte_index += 1
+        return out
+
+    def _bitfield_byte_node(self, s: Service, struct_name: str,
+                            run: List[StructMember], byte_index: int,
+                            path: str) -> Dict[str, Any]:
+        """One packed byte: a plain uint8 VALUE, plus a synthesized compu
+        method that gives each named sub-field its own masked compu scale.
+
+        A sub-field with no enum (padding, or a raw numeric sub-range with no
+        named values) contributes its width to the byte but gets no scale -
+        BITFIELD_TEXTTABLE can only name discrete values, not a range.
+        """
+        byte_name = "Byte%d" % byte_index
+        cm_name = "%s_%s" % (struct_name, byte_name)
+        scales: List[Dict[str, Any]] = []
+        pos = 8
+        for mm in run:
+            pos -= mm.bit_size
+            en = s.find_enum(mm.type)
+            if en is None:
+                continue
+            for lit in en.literals:
+                value = lit.value << pos
+                label = "%s_%s" % (mm.name, lit.vt or lit.name)
+                scales.append({
+                    "label": label, "symbol": label,
+                    "mask": ((1 << mm.bit_size) - 1) << pos,
+                    "lower": value, "upper": value,
+                })
+        node: Dict[str, Any] = {
+            "name": byte_name, "path": path + "/" + byte_name, "category": "VALUE",
+            "type": "uint8_t", "base_ref": "%s/uint8" % self.prj.base_type_package,
+            "compu_ref": None, "constr_ref": None, "impl_ref": None,
+            "array_size": None, "array_semantics": None, "calibration": "READ-ONLY",
+            "children": [],
+        }
+        if scales:
+            self._bitfield_compus.append({
+                "name": cm_name, "path": self.n.compu_path(cm_name),
+                "category": "BITFIELD_TEXTTABLE", "scales": scales,
+            })
+            self._bitfield_constrs.append({
+                "name": cm_name, "path": self.n.constr_path(cm_name),
+                "lower": 0, "upper": 255,
+            })
+            node["compu_ref"] = self.n.compu_path(cm_name)
+            node["constr_ref"] = self.n.constr_path(cm_name)
+            node["calibration"] = None
+        return node
+
     def _array_element_node(self, s: Service, arr, parent_path: str) -> Dict[str, Any]:
         """The single sub element of an array, carrying ARRAY-SIZE."""
         node = self._impl_node(s, arr.element, arr.element_type, parent_path, set())
@@ -234,8 +324,6 @@ class Builder:
     def _as_type_reference(node: Dict[str, Any], ref: str) -> None:
         node["category"] = "TYPE_REFERENCE"
         node["impl_ref"] = ref
-        # a bit width belongs to the member, not to the type it points at,
-        # so node["bit_size"] survives on purpose
         node["base_ref"] = None
         node["compu_ref"] = None
         node["constr_ref"] = None
@@ -253,12 +341,12 @@ class Builder:
         return self.prj.platform_type_package + "/uint8"
 
     def _impl_node(self, s: Service, name: str, type_name: str,
-                   parent_path: str, seen: set, bit_size: int = 0) -> Dict[str, Any]:
+                   parent_path: str, seen: set) -> Dict[str, Any]:
         path = parent_path + "/" + name
         node: Dict[str, Any] = {
             "name": name, "path": path, "category": "VALUE", "type": type_name,
             "base_ref": None, "compu_ref": None, "constr_ref": None, "impl_ref": None,
-            "array_size": None, "array_semantics": None, "bit_size": bit_size or 0,
+            "array_size": None, "array_semantics": None,
             "calibration": "READ-ONLY", "children": [],
         }
         bt = base_type_name(type_name)
@@ -282,9 +370,8 @@ class Builder:
             self._as_type_reference(node, self.n.impl_type_path(type_name))
         elif nested is not None and type_name not in seen:
             node["category"] = "STRUCTURE"
-            node["children"] = [self._impl_node(s, m.name, m.type, path,
-                                                seen | {type_name}, m.bit_size)
-                                for m in nested.members]
+            node["children"] = self._struct_children(s, type_name, nested.members,
+                                                      path, seen | {type_name})
         else:
             # unresolved type: fall back to the smallest base type so the file
             # stays importable; validate.py reports it as an error
@@ -328,15 +415,20 @@ class Builder:
         return out
 
     def _compu_methods(self) -> List[Dict[str, Any]]:
+        # _impl_types() (built earlier in build()) has already appended one
+        # BITFIELD_TEXTTABLE entry per packed byte to self._bitfield_compus -
+        # see _struct_children()/_bitfield_byte_node().
         out = []
         for en in self._all_enums():
             out.append({
                 "name": en.compu_method, "path": self.n.compu_path(en.compu_method),
+                "category": "TEXTTABLE",
                 "scales": [{"label": "CompuScale" if i == 0 else "CompuScale_%d" % i,
                             "lower": lit.value, "upper": lit.value,
                             "vt": lit.vt or lit.name}
                            for i, lit in enumerate(en.literals)],
             })
+        out.extend(self._bitfield_compus)
         return out
 
     def _data_constrs(self) -> List[Dict[str, Any]]:
@@ -345,6 +437,7 @@ class Builder:
             bits = BASE_TYPES.get(en.base_type, ("uint8", 8, "NONE", None))[1]
             out.append({"name": en.data_constr, "path": self.n.constr_path(en.data_constr),
                         "lower": 0, "upper": (1 << bits) - 1})
+        out.extend(self._bitfield_constrs)
         return out
 
     # ------------------------------------------------------------------
