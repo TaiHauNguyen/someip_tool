@@ -38,6 +38,14 @@ class Builder:
         # method belongs there and not on the member itself.
         self._bitfield_compus: List[Dict[str, Any]] = []
         self._bitfield_constrs: List[Dict[str, Any]] = []
+        # every <SYMBOL> already handed out: it becomes a global C identifier,
+        # so a name may not be reused even across compu methods
+        self._bitfield_symbols: set = set()
+        # enums some emitted member really points at.  A bit field enum is
+        # folded into its byte's BITFIELD_TEXTTABLE instead, and emitting its
+        # own TEXTTABLE too would put an enumeration in the workspace that
+        # nothing uses.
+        self._used_enums: set = set()
 
     # ------------------------------------------------------------------
     def build(self) -> Dict[str, Any]:
@@ -293,7 +301,7 @@ class Builder:
                 continue
             for lit in en.literals:
                 value = lit.value << pos
-                label = "%s_%s" % (mm.name, lit.vt or lit.name)
+                label = self._bitfield_symbol(mm, lit)
                 scales.append({
                     "label": label, "symbol": label,
                     "mask": ((1 << mm.bit_size) - 1) << pos,
@@ -307,18 +315,42 @@ class Builder:
             "children": [],
         }
         if scales:
+            # the constraint is named apart from the compu method, the way the
+            # enums do it (CrashOtptStsType / CrashOtptStsconst)
+            dc_name = cm_name + "const"
             self._bitfield_compus.append({
                 "name": cm_name, "path": self.n.compu_path(cm_name),
                 "category": "BITFIELD_TEXTTABLE", "scales": scales,
             })
             self._bitfield_constrs.append({
-                "name": cm_name, "path": self.n.constr_path(cm_name),
+                "name": dc_name, "path": self.n.constr_path(dc_name),
                 "lower": 0, "upper": 255,
             })
             node["compu_ref"] = self.n.compu_path(cm_name)
-            node["constr_ref"] = self.n.constr_path(cm_name)
+            node["constr_ref"] = self.n.constr_path(dc_name)
             node["calibration"] = None
         return node
+
+    def _bitfield_symbol(self, member: StructMember, lit) -> str:
+        """The C identifier one compu scale becomes.
+
+        The literal's own <VT> is what the enum would have been called, and it
+        already carries the enum name, so it is both short and recognisable.
+        Qualify it only when the same enum feeds two different fields, where
+        the two really are different constants - they sit at different bit
+        positions.
+        """
+        base = lit.vt or lit.name
+        for cand in (base, "%s_%s" % (member.name, base)):
+            if cand not in self._bitfield_symbols:
+                self._bitfield_symbols.add(cand)
+                return cand
+        n = 2
+        while "%s_%d" % (base, n) in self._bitfield_symbols:
+            n += 1
+        cand = "%s_%d" % (base, n)
+        self._bitfield_symbols.add(cand)
+        return cand
 
     def _array_element_node(self, s: Service, arr, parent_path: str) -> Dict[str, Any]:
         """The single sub element of an array, carrying ARRAY-SIZE."""
@@ -368,6 +400,7 @@ class Builder:
         if bt is not None:
             node["base_ref"] = "%s/%s" % (self.prj.base_type_package, bt)
         elif en is not None:
+            self._used_enums.add(en.name)
             node["base_ref"] = "%s/%s" % (self.prj.base_type_package,
                                           base_type_name(en.base_type) or "uint8")
             node["compu_ref"] = self.n.compu_path(en.compu_method)
@@ -431,6 +464,8 @@ class Builder:
         # see _struct_children()/_bitfield_byte_node().
         out = []
         for en in self._all_enums():
+            if en.name not in self._used_enums:
+                continue        # folded into a byte's BITFIELD_TEXTTABLE
             out.append({
                 "name": en.compu_method, "path": self.n.compu_path(en.compu_method),
                 "category": "TEXTTABLE",
@@ -445,6 +480,8 @@ class Builder:
     def _data_constrs(self) -> List[Dict[str, Any]]:
         out = []
         for en in self._all_enums():
+            if en.name not in self._used_enums:
+                continue        # its compu method is not emitted either
             bits = BASE_TYPES.get(en.base_type, ("uint8", 8, "NONE", None))[1]
             out.append({"name": en.data_constr, "path": self.n.constr_path(en.data_constr),
                         "lower": 0, "upper": (1 << bits) - 1})
