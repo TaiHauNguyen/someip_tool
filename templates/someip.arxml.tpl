@@ -8,7 +8,9 @@
 
   <!-- One IMPLEMENTATION-DATA-TYPE-ELEMENT; recurses for nested structs.
        Child order follows the AUTOSAR schema: ARRAY-SIZE* then SUB-ELEMENTS
-       then SW-DATA-DEF-PROPS. -->
+       then SW-DATA-DEF-PROPS.  Inside SW-DATA-DEF-PROPS-CONDITIONAL the schema
+       puts SW-BIT-REPRESENTATION straight after BASE-TYPE-REF; it is what makes
+       DaVinci emit the member as a C bit field (`uint8 x : 4;`). -->
   <IMPLEMENTATION-DATA-TYPE-ELEMENT t-def="implElement" UUID="${uuid(node.path)}">
     <SHORT-NAME>${node.name}</SHORT-NAME>
     <CATEGORY>${node.category}</CATEGORY>
@@ -21,6 +23,9 @@
       <SW-DATA-DEF-PROPS-VARIANTS>
         <SW-DATA-DEF-PROPS-CONDITIONAL>
           <BASE-TYPE-REF t-if="node.base_ref" DEST="SW-BASE-TYPE">${node.base_ref}</BASE-TYPE-REF>
+          <SW-BIT-REPRESENTATION t-if="node.bit_size">
+            <NUMBER-OF-BITS t-text="node.bit_size"/>
+          </SW-BIT-REPRESENTATION>
           <SW-CALIBRATION-ACCESS t-if="node.calibration">${node.calibration}</SW-CALIBRATION-ACCESS>
           <COMPU-METHOD-REF t-if="node.compu_ref" DEST="COMPU-METHOD">${node.compu_ref}</COMPU-METHOD-REF>
           <DATA-CONSTR-REF t-if="node.constr_ref" DEST="DATA-CONSTR">${node.constr_ref}</DATA-CONSTR-REF>

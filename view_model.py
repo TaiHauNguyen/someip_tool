@@ -185,7 +185,7 @@ class Builder:
         out.append({
             "name": st.name, "path": path, "category": "STRUCTURE",
             "calibration": "READ-ONLY", "type_emitter": "RTE",
-            "children": [self._impl_node(s, m.name, m.type, path, set())
+            "children": [self._impl_node(s, m.name, m.type, path, set(), m.bit_size)
                          for m in st.members],
         })
 
@@ -234,6 +234,8 @@ class Builder:
     def _as_type_reference(node: Dict[str, Any], ref: str) -> None:
         node["category"] = "TYPE_REFERENCE"
         node["impl_ref"] = ref
+        # a bit width belongs to the member, not to the type it points at,
+        # so node["bit_size"] survives on purpose
         node["base_ref"] = None
         node["compu_ref"] = None
         node["constr_ref"] = None
@@ -251,12 +253,12 @@ class Builder:
         return self.prj.platform_type_package + "/uint8"
 
     def _impl_node(self, s: Service, name: str, type_name: str,
-                   parent_path: str, seen: set) -> Dict[str, Any]:
+                   parent_path: str, seen: set, bit_size: int = 0) -> Dict[str, Any]:
         path = parent_path + "/" + name
         node: Dict[str, Any] = {
             "name": name, "path": path, "category": "VALUE", "type": type_name,
             "base_ref": None, "compu_ref": None, "constr_ref": None, "impl_ref": None,
-            "array_size": None, "array_semantics": None,
+            "array_size": None, "array_semantics": None, "bit_size": bit_size or 0,
             "calibration": "READ-ONLY", "children": [],
         }
         bt = base_type_name(type_name)
@@ -280,7 +282,8 @@ class Builder:
             self._as_type_reference(node, self.n.impl_type_path(type_name))
         elif nested is not None and type_name not in seen:
             node["category"] = "STRUCTURE"
-            node["children"] = [self._impl_node(s, m.name, m.type, path, seen | {type_name})
+            node["children"] = [self._impl_node(s, m.name, m.type, path,
+                                                seen | {type_name}, m.bit_size)
                                 for m in nested.members]
         else:
             # unresolved type: fall back to the smallest base type so the file

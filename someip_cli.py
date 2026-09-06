@@ -79,7 +79,7 @@ def show(prj: Project) -> None:
         for st in s.structs:
             print("   struct %-24s %d byte(s)" % (st.name, s.struct_size(st.name)))
             for m in st.members:
-                print("          %-26s %s" % (m.name, m.type))
+                print("          %-26s %s" % (m.name, m.type_text))
         for en in s.enums:
             print("   enum   %-24s %s" % (en.name, en.base_type))
             for lit in en.literals:

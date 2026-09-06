@@ -8,7 +8,9 @@ workbook got wrong, and regenerate the DaVinci Classic ARXML.
 
 from __future__ import annotations
 
+import contextlib
 import datetime
+import io
 import os
 import sys
 import traceback
@@ -487,6 +489,7 @@ ARRAY_SPEC = [
 
 STRUCT_SPEC = [("Name", "name", "str"), ("Description", "description", "str")]
 MEMBER_SPEC = [("Element name", "name", "str"), ("Type", "type", "str"),
+               ("Bit field width (0 = none)", "bit_size", "int"),
                ("Description", "description", "str")]
 ENUM_SPEC = [("Name", "name", "str"), ("Base type", "base_type", "choice", BASE_TYPE_CHOICES),
              ("Description", "description", "str")]
@@ -504,6 +507,7 @@ class App(tk.Tk):
         self.geometry("1240x820")
         self.prj = Project()
         self.path: Optional[str] = None
+        self._last_generated: Optional[str] = None
         self._tool_buttons: list = []
         self._svc_buttons: list = []
 
@@ -750,6 +754,8 @@ class App(tk.Tk):
         f.add_separator()
         f.add_command(label="Generate ARXML...", command=self.generate_arxml)
         f.add_separator()
+        f.add_command(label="Generate per-instance memory...", command=self.gen_instance_memory)
+        f.add_separator()
         f.add_command(label="Exit", command=self.destroy)
         menu.add_cascade(label="File", menu=f)
         self.file_menu = f
@@ -808,6 +814,11 @@ class App(tk.Tk):
         self.btn_gen = ToolButton(bar, "Generate ARXML", "generate",
                                   self.generate_arxml, accent=True)
         self.btn_gen.pack(side="left")
+        sep()
+        b = ToolButton(bar, "Per-Instance Memory", "memory",
+                       self.gen_instance_memory, tint="ic_memory")
+        b.pack(side="left")
+        self._tool_buttons.append(b)
 
         self.file_label = ttk.Label(bar, text="(no file)", style="Toolbar.TLabel")
         self.file_label.pack(side="right", padx=(8, 2))
@@ -1122,7 +1133,8 @@ class App(tk.Tk):
                                                           st.description))
             for mi, m in enumerate(st.members):
                 self.st_tree.insert(node, "end", iid="%d:%d:%d" % (si, ii, mi), text=m.name,
-                                    values=(m.type, s.struct_size(m.type), m.description))
+                                    values=(m.type_text, s.struct_size(m.type),
+                                            m.description))
         for ii, ar in enumerate(s.arrays):
             self.ar_tree.insert("", "end", iid="%d:%d" % (si, ii),
                                 tags=(_row_tag(self.ar_tree),),
@@ -1278,8 +1290,60 @@ class App(tk.Tk):
             messagebox.showerror("Generation failed", traceback.format_exc())
             return
         self.refresh_preview()
+        self._last_generated = path
         self._set_status("Generated %s" % path, "ok")
         messagebox.showinfo("Done", "ARXML written to:\n%s" % path)
+
+    def gen_instance_memory(self) -> None:
+        """Run gen_per_instance_memory.py on one or more ARXML files.
+
+        This is a standalone post-processing step - it reads plain
+        IMPLEMENTATION-DATA-TYPEs out of any ARXML, so it needs no licence and
+        no project to be loaded.  The script itself is the tested logic; this
+        just wires its CLI up to file dialogs and shows what it printed.
+        """
+        start_dir = os.path.dirname(self._last_generated or self.path or "") or None
+        paths = filedialog.askopenfilenames(
+            title="Select ARXML file(s) to scan for IMPLEMENTATION-DATA-TYPEs",
+            initialdir=start_dir,
+            filetypes=[("ARXML", "*.arxml"), ("All files", "*.*")])
+        if not paths:
+            return
+        base = os.path.splitext(os.path.basename(paths[0]))[0]
+        out = filedialog.asksaveasfilename(
+            title="Save per-instance memory fragment", defaultextension=".arxml",
+            initialdir=os.path.dirname(paths[0]),
+            initialfile=base + "_PerInstanceMemory.arxml",
+            filetypes=[("ARXML", "*.arxml"), ("All files", "*.*")])
+        if not out:
+            return
+        import gen_per_instance_memory as pim
+        old_argv = sys.argv
+        log_buf = io.StringIO()
+        try:
+            sys.argv = ["gen_per_instance_memory.py", *paths, "-o", out]
+            with contextlib.redirect_stderr(log_buf):
+                pim.main()
+        except SystemExit:
+            pass
+        except Exception:  # noqa: BLE001
+            messagebox.showerror("Generation failed", traceback.format_exc())
+            return
+        finally:
+            sys.argv = old_argv
+        lines = [ln for ln in log_buf.getvalue().splitlines() if ln.strip()]
+        count = sum(1 for ln in lines if ln.lstrip().startswith("+"))
+        self._set_status("Per-instance memory: %d prototype(s) -> %s" % (count, out),
+                         "ok" if count else "warn")
+        if lines:
+            self._show_log("Per-instance memory log", lines)
+        if count:
+            messagebox.showinfo("Done", "Per-instance memory written to:\n%s" % out)
+        else:
+            messagebox.showwarning(
+                "Nothing generated",
+                "No matching IMPLEMENTATION-DATA-TYPE was found (category STRUCTURE "
+                "by default) - see the log for details.")
 
     def run_validate(self) -> None:
         self._commit_forms()

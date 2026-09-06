@@ -58,6 +58,11 @@ Typical flow:
 3. **Validate** – the Check tab must be free of errors.
 4. **Save JSON** – this is your editable database, keep it in the repo.
 5. **Generate ARXML** – import the result in DaVinci Classic.
+6. **Per-Instance Memory** (optional) – pick the ARXML just generated (or any
+   ARXML with `IMPLEMENTATION-DATA-TYPE`s) and this writes the matching
+   `<AR-TYPED-PER-INSTANCE-MEMORYS>` fragment (one `VARIABLE-DATA-PROTOTYPE`
+   per `STRUCTURE` data type) for pasting into the SWC's internal behavior.
+   This wraps `gen_per_instance_memory.py` and needs no licence.
 
 ## Command line
 
@@ -85,8 +90,9 @@ template* field on the Project tab, or `--template` on the CLI.
 
 Handles: any number of services and workbooks, provider and consumer roles,
 several events per group, several event groups per service **including groups
-that go to different ECUs**, nested structs, enums, and both DataStructures
-sheet layouts.
+that go to different ECUs**, nested structs, enums, bit field members
+(`uint8_t : 4` in the Type column, as `dbc_bitfield_excel.py` writes them), and
+both DataStructures sheet layouts.
 
 Not handled yet - the validator reports an error rather than writing a wrong
 file: **TCP transport** (only `UDP-TP` sockets are generated) and SOME/IP

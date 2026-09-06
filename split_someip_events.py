@@ -156,11 +156,15 @@ def unmerge_region(ws, min_row, min_col, max_col):
 # Doc sheet DataStructures
 # =============================================================================
 
-def find_marker(ws, marker, limit_rows=30):
-    """Tim cell co gia tri == marker trong vung header phia tren."""
+def find_marker(ws, marker, limit_rows=30, min_col=1):
+    """Tim cell co gia tri == marker trong vung header phia tren.
+
+    `min_col` bo qua o tieu de cua khoi (vd chu "Enumerate" o cot A dong 1),
+    chi nhan o nam du xa ben phai de con cho cho cac cot dung truoc no.
+    """
     for row in ws.iter_rows(min_row=1, max_row=min(limit_rows, ws.max_row)):
         for c in row:
-            if cell_str(c.value).lower() == marker.lower():
+            if c.column >= min_col and cell_str(c.value).lower() == marker.lower():
                 return c.row, c.column
     return None, None
 
@@ -172,7 +176,7 @@ def read_structs(ws):
       structs: dict ten_struct -> {"index":.., "elements":[{"name","type","desc","row"}], "first_row":..}
       layout : {"header_row","col_index","col_name","col_element","col_type","col_desc","first_data_row"}
     """
-    hrow, ecol = find_marker(ws, "Element")
+    hrow, ecol = find_marker(ws, "Element", min_col=3)
     if hrow is None:
         raise RuntimeError(
             "Khong tim thay header 'Element' cua bang Struct trong sheet %s." % ws.title)
@@ -208,9 +212,20 @@ def read_structs(ws):
     return structs, order, layout
 
 
+# Tieu de cot literal cua bang Enumerate: sheet cu ghi "Enumeral",
+# sheet do dbc_bitfield_excel.py sinh ra ghi "Enumerate".
+ENUM_MARKERS = ("Enumeral", "Enumerate", "Enumerate / Literal", "Literal")
+
+
 def read_enums(ws):
     """Doc bang Enumerate -> dict ten_enum -> kieu co ban (uint8_t...)."""
-    hrow, ecol = find_marker(ws, "Enumeral")
+    hrow = ecol = None
+    for marker in ENUM_MARKERS:
+        # Name and Type sit two and one columns to the left, so the literal
+        # header cannot be column A or B
+        hrow, ecol = find_marker(ws, marker, min_col=3)
+        if hrow is not None:
+            break
     if hrow is None:
         return {}
     col_name, col_type = ecol - 2, ecol - 1
@@ -223,10 +238,18 @@ def read_enums(ws):
     return enums
 
 
+def split_bit_width(type_str):
+    """('uint8_t : 4') -> ('uint8_t', 4);  ('uint8_t') -> ('uint8_t', 0)."""
+    m = re.match(r"^\s*(.+?)\s*:\s*(\d+)\s*$", type_str or "")
+    if not m:
+        return (type_str or "").strip(), 0
+    return m.group(1), int(m.group(2))
+
+
 def type_size(type_name, structs, enums, _seen=None):
     """Tinh size (byte) cua mot kieu. Tra ve None neu khong xac dinh duoc."""
     _seen = _seen or set()
-    t = (type_name or "").strip()
+    t, _ = split_bit_width(type_name)
     if not t or t in _seen:
         return None
     _seen = _seen | {t}
@@ -237,12 +260,20 @@ def type_size(type_name, structs, enums, _seen=None):
         return PRIMITIVE_SIZES.get(enums[t].lower())
     if t in structs:
         total = 0
+        bits = 0
         for el in structs[t]["elements"]:
+            _, w = split_bit_width(el["type"])
+            if w:
+                # bit field: a run of them shares its storage bytes
+                bits += w
+                continue
+            total += (bits + 7) // 8
+            bits = 0
             s = type_size(el["type"], structs, enums, _seen)
             if s is None:
                 return None
             total += s
-        return total
+        return total + (bits + 7) // 8
     return None
 
 

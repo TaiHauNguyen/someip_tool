@@ -12,6 +12,7 @@ JSON regenerates the same ARXML without touching the Excel again.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field, asdict, fields, is_dataclass
 from typing import Any, Dict, List, Optional
 
@@ -51,6 +52,24 @@ def base_type_name(t: str) -> Optional[str]:
 def base_type_size_bytes(t: str) -> int:
     e = BASE_TYPES.get(t)
     return (e[1] // 8) if e else 0
+
+
+def base_type_size_bits(t: str) -> int:
+    e = BASE_TYPES.get(t)
+    return e[1] if e else 0
+
+
+# "uint8_t : 4", "ACUCrashStsType : 2" - the width of a C bit field, the way the
+# DBC importer writes it into the Type column of the DataStructures sheet.
+_BIT_WIDTH = re.compile(r"^\s*(.+?)\s*:\s*(\d+)\s*$")
+
+
+def split_bit_width(type_str: str) -> tuple:
+    """('uint8_t : 4') -> ('uint8_t', 4);  ('uint8_t') -> ('uint8_t', 0)."""
+    m = _BIT_WIDTH.match(type_str or "")
+    if not m:
+        return (type_str or "").strip(), 0
+    return m.group(1), int(m.group(2))
 
 
 def parse_int(v: Any, default: int = 0) -> int:
@@ -152,6 +171,15 @@ class StructMember:
     name: str = ""            # Excel "Element", e.g. crashOtptSts
     type: str = ""            # base type, enum, nested struct or array name
     description: str = ""
+    # width of the C bit field in bits, 0 for a plain member.  The Excel column
+    # writes it as "uint8_t : 4"; the model keeps type and width apart so the
+    # type still resolves against the enum and struct tables.
+    bit_size: int = 0
+
+    @property
+    def type_text(self) -> str:
+        """The Type column of the workbook: the type, plus ' : n' for a bit field."""
+        return "%s : %d" % (self.type, self.bit_size) if self.bit_size else self.type
 
 
 @dataclass
@@ -343,12 +371,20 @@ class Service:
                 return base_type_size_bytes(en.base_type)
             return base_type_size_bytes(name)
         total = 0
+        bits = 0
         for m in st.members:
+            if m.bit_size:
+                # a run of bit fields is packed together; only the run as a
+                # whole rounds up to whole bytes
+                bits += m.bit_size
+                continue
+            total += (bits + 7) // 8
+            bits = 0
             if base_type_name(m.type):
                 total += base_type_size_bytes(m.type)
             else:
                 total += self.struct_size(m.type, _seen)
-        return total
+        return total + (bits + 7) // 8
 
 
 # --------------------------------------------------------------------------

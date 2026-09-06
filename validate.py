@@ -10,7 +10,9 @@ from __future__ import annotations
 
 from typing import Dict, List, Tuple
 
-from someip_model import Project, Service, base_type_name, parse_int
+from someip_model import (
+    Project, Service, base_type_name, base_type_size_bits, parse_int,
+)
 
 ERROR, WARN, INFO = "ERROR", "WARNING", "INFO"
 
@@ -184,6 +186,7 @@ def _validate_service(prj: Project, s: Service) -> List[Tuple[str, str, str]]:
         if not st.members:
             out.append((WARN, "%s / %s" % (where, st.name), "Struct has no member."))
         seen = set()
+        bits = 0
         for m in st.members:
             w = "%s / %s.%s" % (where, st.name, m.name)
             if m.name in seen:
@@ -192,6 +195,22 @@ def _validate_service(prj: Project, s: Service) -> List[Tuple[str, str, str]]:
             if base_type_name(m.type) is None and m.type not in known:
                 out.append((ERROR, w, "Unknown type '%s' - it is neither a base type, "
                                       "a struct nor an enum of this service." % m.type))
+            if m.bit_size:
+                bits += m.bit_size
+                out.extend(_check_bit_field(s, m, w))
+            elif bits:
+                if bits % 8:
+                    out.append((WARN, "%s / %s" % (where, st.name),
+                                "The bit fields before '%s' add up to %d bits; the "
+                                "compiler pads the run to %d bytes."
+                                % (m.name, bits, (bits + 7) // 8)))
+                bits = 0
+        if bits % 8:
+            out.append((WARN, "%s / %s" % (where, st.name),
+                        "The bit fields add up to %d bits, not a whole number of "
+                        "bytes; add a reserved field of %d bit(s) so the struct "
+                        "serializes the way the CAN frame is laid out."
+                        % (bits, 8 - bits % 8)))
 
     for en in s.enums:
         values = {}
@@ -221,6 +240,29 @@ def _validate_service(prj: Project, s: Service) -> List[Tuple[str, str, str]]:
         if ar.name not in used:
             out.append((INFO, "%s / %s" % (where, ar.name),
                         "Array is not referenced by any struct member or event."))
+    return out
+
+
+def _check_bit_field(s: Service, m, w) -> List[Tuple[str, str, str]]:
+    """A C bit field only works over an integer that is wide enough."""
+    out: List[Tuple[str, str, str]] = []
+    storage = m.type
+    en = s.find_enum(m.type)
+    if en is not None:
+        storage = en.base_type
+    elif s.find_struct(m.type) is not None or s.find_array(m.type) is not None:
+        out.append((ERROR, w, "'%s' is a struct or an array, which C cannot "
+                              "declare as a bit field." % m.type))
+        return out
+    width = base_type_size_bits(storage)
+    if not width:
+        return out                      # unknown type: already reported above
+    if storage in ("float", "float32", "double", "float64"):
+        out.append((ERROR, w, "C has no floating point bit field; drop the "
+                              "': %d' from the Type column." % m.bit_size))
+    elif m.bit_size > width:
+        out.append((ERROR, w, "Bit field is %d bits wide but '%s' only holds %d."
+                    % (m.bit_size, storage, width)))
     return out
 
 

@@ -18,6 +18,7 @@ import openpyxl
 from someip_model import (
     EnumLiteral, EnumType, Event, EventGroup, EventParam, Endpoint,
     Service, StructMember, StructType, TsnStream, TsnSwitch, parse_int,
+    split_bit_width,
 )
 
 
@@ -259,8 +260,12 @@ def _read_structs(ws) -> List[StructType]:
                 continue
             el = val("Element")
             if el:
+                # "uint8_t : 4" is a bit field: the width travels beside the
+                # type so the type itself still resolves against the tables
+                type_name, bits = split_bit_width(val("Type"))
                 cur.members.append(StructMember(
-                    name=el, type=val("Type"), description=val("Description")))
+                    name=el, type=type_name, bit_size=bits,
+                    description=val("Description")))
     return structs
 
 

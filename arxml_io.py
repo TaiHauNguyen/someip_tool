@@ -262,18 +262,22 @@ class ArxmlReader:
                 target.members.append(StructMember(name=name, type=nested_name))
                 continue
             cond = el.find("SW-DATA-DEF-PROPS/SW-DATA-DEF-PROPS-VARIANTS/SW-DATA-DEF-PROPS-CONDITIONAL")
+            bits = _int(cond, "SW-BIT-REPRESENTATION/NUMBER-OF-BITS") if cond is not None else 0
             compu = cond.find("COMPU-METHOD-REF") if cond is not None else None
             if compu is not None and compu.text:
-                target.members.append(StructMember(name=name, type=compu.text.rsplit("/", 1)[-1]))
+                target.members.append(StructMember(
+                    name=name, type=compu.text.rsplit("/", 1)[-1], bit_size=bits))
                 continue
             impl = cond.find("IMPLEMENTATION-DATA-TYPE-REF") if cond is not None else None
             if impl is not None and impl.text:
                 leaf = impl.text.rsplit("/", 1)[-1]
-                target.members.append(StructMember(name=name, type=BASE_BY_AR.get(leaf, leaf)))
+                target.members.append(StructMember(
+                    name=name, type=BASE_BY_AR.get(leaf, leaf), bit_size=bits))
                 continue
             bt = cond.find("BASE-TYPE-REF") if cond is not None else None
             ar = bt.text.rsplit("/", 1)[-1] if bt is not None and bt.text else "uint8"
-            target.members.append(StructMember(name=name, type=BASE_BY_AR.get(ar, "uint8_t")))
+            target.members.append(StructMember(
+                name=name, type=BASE_BY_AR.get(ar, "uint8_t"), bit_size=bits))
 
     # -- events -----------------------------------------------------------
     def _read_events(self) -> Dict[str, Dict]:
