@@ -246,9 +246,13 @@ class Builder:
         byte_index = 0
         while i < n:
             m = members[i]
-            if not m.bit_size or m.bit_size == 8:
+            # Only a *sub-byte* field is merged.  No width, or a width that is
+            # a whole number of bytes ("uint8_t : 8", "uint16_t : 16" for a
+            # 16 bit CAN signal), means the member keeps its own name and type.
+            if not m.bit_size or m.bit_size % 8 == 0:
                 out.append(self._impl_node(s, m.name, m.type, path, seen))
-                byte_index += max(1, s.struct_size(m.type))
+                byte_index += max(1, m.bit_size // 8 if m.bit_size
+                                  else s.struct_size(m.type))
                 i += 1
                 continue
             run = []
@@ -257,6 +261,13 @@ class Builder:
                 run.append(members[i])
                 bits += members[i].bit_size
                 i += 1
+            if not run:
+                # wider than a byte and not byte aligned - it cannot live in one
+                # byte's BITFIELD_TEXTTABLE, so it keeps a member of its own
+                out.append(self._impl_node(s, m.name, m.type, path, seen))
+                byte_index += (m.bit_size + 7) // 8
+                i += 1
+                continue
             out.append(self._bitfield_byte_node(s, struct_name, run, byte_index, path))
             byte_index += 1
         return out

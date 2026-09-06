@@ -254,12 +254,12 @@ def _check_bit_field(s: Service, m, w) -> List[Tuple[str, str, str]]:
         out.append((ERROR, w, "'%s' is a struct or an array, which cannot be "
                               "a bit field." % m.type))
         return out
-    elif m.bit_size != 8 and not m.name.lower().startswith("reserved"):
-        # A field narrower than its byte is merged into one byte-wide member
-        # whose BITFIELD_TEXTTABLE can only name discrete values - so without
-        # an enum it gets no compu scale and its name is not in the ARXML at
-        # all.  Padding is meant to disappear; a real signal is worth saying
-        # out loud.  (A full 8 bit field stays a member of its own.)
+    elif m.bit_size % 8 and not m.name.lower().startswith("reserved"):
+        # A sub-byte field is merged into one byte-wide member whose
+        # BITFIELD_TEXTTABLE can only name discrete values - so without an enum
+        # it gets no compu scale and its name is not in the ARXML at all.
+        # Padding is meant to disappear; a real signal is worth saying out
+        # loud.  (A field of whole bytes stays a member of its own.)
         out.append((INFO, w, "Bit field has no enum, so it gets no named scale in "
                              "the byte's BITFIELD_TEXTTABLE and its name does not "
                              "reach the ARXML; only its %d bits are reserved."
