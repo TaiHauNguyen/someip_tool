@@ -1,6 +1,7 @@
 """Command line front end - same engine as the GUI, for batch / CI use.
 
     python someip_cli.py build PCU_Provider.xlsx RMCU_Consumer.xlsx -o ZA_someip.arxml
+    python someip_cli.py build *.xlsx -o ZA_someip.arxml --swc ZAFL_SoIpSwc.arxml
     python someip_cli.py build *.xlsx --base ZA_someip.arxml -o out.arxml
     python someip_cli.py build ZA_someip.someip.json -o out.arxml --template my.tpl
     python someip_cli.py show      ZA_someip.arxml
@@ -24,6 +25,7 @@ import arxml_gen
 import arxml_io
 import excel_io
 import licensing
+import swc_gen
 import validate as validator
 from someip_model import Project, parse_int
 
@@ -106,6 +108,8 @@ def main(argv=None) -> int:
     b.add_argument("--base", help="project the workbooks are imported on top of")
     b.add_argument("--template", help="template file (default: the project's own setting)")
     b.add_argument("--json", help="also write the project model as JSON")
+    b.add_argument("--swc", metavar="PATH",
+                   help="also write the SWC to a file of its own (its ports refer to the ARXML)")
     b.add_argument("--force", action="store_true", help="generate even with validation errors")
 
     c = sp.add_parser("check", help="validate only")
@@ -144,6 +148,10 @@ def main(argv=None) -> int:
     try:
         arxml_gen.write(prj, args.output, args.template or prj.template)
         print("\nWritten", args.output)
+        if args.swc:
+            # its own file: the ARXML above is already complete without it
+            swc_gen.write(prj, args.swc, prj.swc_template)
+            print("Written", args.swc, "(import it after the ARXML above)")
         if args.json:
             prj.to_json(args.json)
             print("Written", args.json)

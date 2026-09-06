@@ -58,7 +58,14 @@ Typical flow:
 3. **Validate** – the Check tab must be free of errors.
 4. **Save JSON** – this is your editable database, keep it in the repo.
 5. **Generate ARXML** – import the result in DaVinci Classic.
-6. **Per-Instance Memory** (optional) – pick the ARXML just generated (or any
+6. **Generate SWC** (optional) – writes an `APPLICATION-SW-COMPONENT-TYPE` to a
+   file of its own, one port per event: a provider service sends, so it gets a
+   P-Port; a consumer receives, so it gets an R-Port with an `INIT-VALUE`
+   shaped like the data type behind its interface.  The SWC declares no type
+   and no interface - every port points into the ARXML from step 5, so
+   **import that file first and the SWC second**.  The SOME/IP output is not
+   touched by this button.
+7. **Per-Instance Memory** (optional) – pick the ARXML just generated (or any
    ARXML with `IMPLEMENTATION-DATA-TYPE`s) and this writes the matching
    `<AR-TYPED-PER-INSTANCE-MEMORYS>` fragment (one `VARIABLE-DATA-PROTOTYPE`
    per `STRUCTURE` data type) for pasting into the SWC's internal behavior.
@@ -111,8 +118,10 @@ event socket.
 | `naming.py` | short name and topology derivation rules |
 | `view_model.py` | flattens the model into the template context |
 | `template_engine.py` | the `t-foreach` / `t-if` / `${}` XML templating |
-| `templates/*.arxml.tpl` | **the ARXML structure** - edit this to change the output |
+| `templates/someip.arxml.tpl` | **the ARXML structure** - edit this to change the output |
+| `templates/swc.arxml.tpl` | the SWC structure, ports and init values |
 | `arxml_gen.py` | glues view model + template together |
+| `swc_gen.py` | the SWC file, generated separately from the same model |
 | `resolve.py` | nearest-declaration and carry-over rules |
 | `arxml_io.py` | ARXML → model (open an existing file) |
 | `validate.py` | consistency checks |
@@ -161,7 +170,8 @@ unsigned, so SmartScreen may ask for **More info → Run anyway** the first time
 ## Licensing
 
 Importing workbooks, opening ARXML or JSON, editing and validating need no
-licence.  **Generating ARXML and saving the project JSON do.**  The window shows
+licence.  **Generating ARXML, generating the SWC and saving the project JSON
+do.**  The window shows
 `[UNLICENSED]` in its title and greys those two out; the CLI refuses `build`
 with exit code 3 while `show`, `check` and `templates` keep working.
 

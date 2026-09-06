@@ -28,6 +28,18 @@ def build(prj: Project) -> Dict[str, Any]:
     return ctx
 
 
+def build_swc(prj: Project) -> Dict[str, Any]:
+    """Context for the SWC file, which is generated separately.
+
+    It reuses the same Builder, so the port interface paths and the data type
+    tree it references are by construction the ones the SOME/IP file declares -
+    the SWC is only useful next to that file, and a name computed a second way
+    would eventually drift from it.
+    """
+    n = Names(prj)
+    return Builder(prj, n, SocketPlan(prj, n)).build_swc()
+
+
 class Builder:
     def __init__(self, prj: Project, n: Names, plan: SocketPlan):
         self.prj, self.n, self.plan = prj, n, plan
@@ -164,6 +176,85 @@ class Builder:
             "name": ev["port_interface"], "path": ev["port_interface_path"],
             "element": ev["name"], "type_ref": ev["type_ref"],
         } for ev in events]
+
+    # ------------------------------------------------------------------
+    # SWC (its own file)
+    # ------------------------------------------------------------------
+    def build_swc(self) -> Dict[str, Any]:
+        events = self._events()
+        types_by_path = {t["path"]: t for t in self._impl_types()}
+        name = self.prj.swc_name or (self.prj.ecu_name + "_SoIpSwc")
+        package = self.prj.swc_package or "ComponentTypes"
+        path = "/%s/%s" % (package, name)
+        return {
+            "project": self.prj,
+            "uuid": uuid_for,
+            "package": package,
+            "package_path": "/" + package,
+            "swc": {"name": name, "path": path},
+            "ports": self._swc_ports(events, types_by_path, path),
+        }
+
+    def _swc_ports(self, events, types_by_path, swc_path) -> List[Dict[str, Any]]:
+        """One port per event: the provider sends, so it gets a P-Port.
+
+        A receiver has to start from a defined value, so an R-Port carries an
+        init value shaped like the data type it receives.  A sender does not:
+        the application writes before it sends.
+        """
+        out: List[Dict[str, Any]] = []
+        for ev in events:
+            s = ev["service"]
+            prefix = (self.prj.swc_port_prefix_provider if s.is_provider
+                      else self.prj.swc_port_prefix_consumer)
+            name = prefix + ev["name"]
+            init = None
+            if not s.is_provider:
+                target = types_by_path.get(ev["type_ref"])
+                init = (self._value_spec(target, types_by_path) if target is not None
+                        else {"kind": "numerical", "label": "", "value": 0, "children": []})
+            out.append({
+                "name": name, "path": swc_path + "/" + name,
+                "provided": s.is_provider,
+                "iface_ref": ev["port_interface_path"],
+                "data_element_ref": "%s/%s" % (ev["port_interface_path"], ev["name"]),
+                "init": init,
+            })
+        return out
+
+    def _value_spec(self, node: Dict[str, Any], types_by_path: Dict[str, Any],
+                    label: Optional[str] = None, depth: int = 0) -> Dict[str, Any]:
+        """An INIT-VALUE tree shaped like one IMPLEMENTATION-DATA-TYPE.
+
+        It is built from the emitted type tree rather than from the model, so
+        it matches what the SOME/IP file really declares - a struct whose bit
+        fields were packed into Byte<n> members has to be initialised with one
+        field per byte, not one per signal.
+        """
+        cat = node.get("category")
+        lbl = node.get("name", "") if label is None else label
+        plain = {"kind": "numerical", "label": lbl, "value": 0, "children": []}
+        if depth > 16:
+            return plain                                  # cyclic: stop
+        if cat == "TYPE_REFERENCE":
+            target = types_by_path.get(node.get("impl_ref") or "")
+            if target is None:
+                return plain                              # a platform type
+            return self._value_spec(target, types_by_path, lbl, depth + 1)
+        if cat == "STRUCTURE":
+            return {"kind": "record", "label": lbl, "value": 0,
+                    "children": [self._value_spec(c, types_by_path, None, depth + 1)
+                                 for c in node.get("children") or []]}
+        if cat == "ARRAY":
+            kids = node.get("children") or []
+            if not kids:
+                return plain
+            elem = kids[0]
+            # the elements are indistinguishable, so none of them takes a label
+            return {"kind": "array", "label": lbl, "value": 0,
+                    "children": [self._value_spec(elem, types_by_path, "", depth + 1)
+                                 for _ in range(max(1, int(elem.get("array_size") or 1)))]}
+        return plain
 
     # ------------------------------------------------------------------
     # data types

@@ -325,6 +325,42 @@ Independent of the services, one set per ECU:
 
 ---
 
+## 6b. The SWC file (generated separately)
+
+*Generate SWC* writes a second, independent file: an
+`APPLICATION-SW-COMPONENT-TYPE` under `/ComponentTypes`, holding one port per
+event.  It declares no data type and no port interface of its own - every port
+is a reference into the SOME/IP file, so **that file has to be imported
+first**.  Nothing in section 2-6 changes when this button is pressed;
+`swc_gen.py` and `templates/swc.arxml.tpl` are a separate pair beside
+`arxml_gen.py` and `someip.arxml.tpl`, sharing only the model.
+
+| Service role | Port | Direction |
+|---|---|---|
+| provider | `P-PORT-PROTOTYPE`, `PROVIDED-INTERFACE-TREF` | sends the event |
+| consumer | `R-PORT-PROTOTYPE`, `REQUIRED-INTERFACE-TREF` | receives it |
+
+Port name: `SoIp_P_<event>` / `SoIp_R_<event>`, beside the interface names
+`SoIp_I_P_<event>` / `SoIp_I_C_<event>` the SOME/IP file uses.
+
+A receiver has to start from a defined value, so an R-Port carries a
+`NONQUEUED-RECEIVER-COM-SPEC` with an `INIT-VALUE`.  A sender does not: the
+application writes before it sends.
+
+**The init value is shaped like the emitted type, not like the workbook.**  It
+is built by walking the `IMPLEMENTATION-DATA-TYPE` tree the SOME/IP file really
+carries, so a struct whose bit fields were packed into `Byte<n>` members
+(section 5) is initialised with one field per byte, not one per CAN signal:
+
+| Type | Value specification |
+|---|---|
+| struct | `RECORD-VALUE-SPECIFICATION` / `FIELDS`, one entry per sub element |
+| array | `ARRAY-VALUE-SPECIFICATION` / `ELEMENTS`, `ARRAY-SIZE` entries |
+| base type or enum | `NUMERICAL-VALUE-SPECIFICATION`, `VALUE` 0 |
+
+Each field carries the sub element's name as `SHORT-LABEL`; array elements are
+indistinguishable, so they carry none.
+
 ## 7. Where the rules live
 
 Nothing about this project is hard coded.  The pipeline is three separable pieces:

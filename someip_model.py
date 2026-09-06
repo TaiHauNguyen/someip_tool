@@ -421,6 +421,17 @@ class Project:
     port_iface_prefix_provider: str = "SoIp_I_P_"
     port_iface_prefix_consumer: str = "SoIp_I_C_"
 
+    # -- the SWC, written to a file of its own ----------------------------
+    # It only references what the SOME/IP file declares (the port interfaces
+    # and their data types), so the two are generated from one model but never
+    # share a file.
+    swc_name: str = ""                   # "" = <ecu_name>_SoIpSwc
+    swc_package: str = "ComponentTypes"
+    swc_template: str = "swc.arxml.tpl"
+    # a provider service sends, so its port is a P-Port; a consumer receives
+    swc_port_prefix_provider: str = "SoIp_P_"
+    swc_port_prefix_consumer: str = "SoIp_R_"
+
     services: List[Service] = field(default_factory=list)
 
     # -- helpers ----------------------------------------------------------

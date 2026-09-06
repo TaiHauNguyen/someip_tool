@@ -35,6 +35,9 @@ ICONS = {
     "check":    chr(0xE930),   # tick in a circle
     "generate": chr(0xE896),   # arrow into a tray
     "memory":   chr(0xE964),   # a memory card
+    # meant to read as a component block; the font carries no glyph names, so
+    # if it draws as something else, pick another code point from the font
+    "swc":      chr(0xE7B8),
     "add":      chr(0xE710),   # plus
     "delete":   chr(0xE74D),   # waste basket
     "error":    chr(0xEA39),   # cross in a circle
@@ -115,6 +118,7 @@ LIGHT = Palette(
     ic_save="#1d4ed8",
     ic_check="#0d6b6b",
     ic_memory="#4b3f96",
+    ic_swc="#a3167a",
     ic_add="#0f5c2e",
     ic_delete="#a3160f",
     # a service is either offered or consumed, and that governs half the file
@@ -157,6 +161,7 @@ DARK = Palette(
     ic_save="#69a6ff",
     ic_check="#4fd6d6",
     ic_memory="#b9a6ff",
+    ic_swc="#ff8fd0",
     ic_add="#6fe0a0",
     ic_delete="#ff8b82",
     role_provider="#6fe0a0",

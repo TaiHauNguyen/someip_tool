@@ -24,8 +24,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import arxml_gen
 import arxml_io
 import licensing
+import swc_gen
 import theme
 import validate as validator
+import view_model
 from someip_model import (
     BASE_TYPES, ArrayType, EnumLiteral, EnumType, Event, EventGroup, Project,
     Service, StructMember, StructType, default_array_name, parse_int,
@@ -580,10 +582,10 @@ class App(tk.Tk):
         self.title("%s - %s%s" % (APP_TITLE, name, mark))
 
     def refresh_license(self, announce: bool = False) -> None:
-        """Re-read the licence and open or close the two locked actions."""
+        """Re-read the licence and open or close the locked actions."""
         self.lic = licensing.status()
         state = "normal" if self.lic.valid else "disabled"
-        for btn in (self.btn_gen, self.btn_save):
+        for btn in (self.btn_gen, self.btn_save, self.btn_swc):
             btn.configure(state=state)
         self.lic_label.configure(
             text="" if self.lic.valid else "unlicensed  •  ")
@@ -737,7 +739,7 @@ class App(tk.Tk):
             theme.stripe(tree, p)
         self.svc_canvas.configure(background=p.bg)
         # the toolbar buttons draw themselves, so the palette has to reach them
-        for btn in (self.btn_gen, self.btn_save,
+        for btn in (self.btn_gen, self.btn_save, self.btn_swc,
                     *self._tool_buttons, *self._svc_buttons):
             btn.restyle()
 
@@ -753,6 +755,7 @@ class App(tk.Tk):
         f.add_command(label="Save project JSON as...", command=lambda: self.save_json(True))
         f.add_separator()
         f.add_command(label="Generate ARXML...", command=self.generate_arxml)
+        f.add_command(label="Generate SWC ARXML...", command=self.generate_swc)
         f.add_separator()
         f.add_command(label="Generate per-instance memory...", command=self.gen_instance_memory)
         f.add_separator()
@@ -762,7 +765,8 @@ class App(tk.Tk):
         # the two entries a licence unlocks, by their index in the File menu
         self.locked_entries = [f.index("Save project JSON"),
                                f.index("Save project JSON as..."),
-                               f.index("Generate ARXML...")]
+                               f.index("Generate ARXML..."),
+                               f.index("Generate SWC ARXML...")]
 
         e = tk.Menu(menu, tearoff=0)
         e.add_command(label="Add service", command=self.add_service)
@@ -815,6 +819,10 @@ class App(tk.Tk):
                                   self.generate_arxml, accent=True)
         self.btn_gen.pack(side="left")
         sep()
+        # a second output, written to a file of its own beside the first
+        self.btn_swc = ToolButton(bar, "Generate SWC", "swc",
+                                  self.generate_swc, tint="ic_swc")
+        self.btn_swc.pack(side="left", padx=(0, 2))
         b = ToolButton(bar, "Per-Instance Memory", "memory",
                        self.gen_instance_memory, tint="ic_memory")
         b.pack(side="left")
@@ -1293,6 +1301,50 @@ class App(tk.Tk):
         self._last_generated = path
         self._set_status("Generated %s" % path, "ok")
         messagebox.showinfo("Done", "ARXML written to:\n%s" % path)
+
+    def generate_swc(self) -> None:
+        """Write the SWC to a file of its own; the SOME/IP output is untouched.
+
+        Every port here is a reference into the SOME/IP file, so the two belong
+        together - hence the reminder about import order rather than a second
+        copy of the interfaces.
+        """
+        if not self._commit_forms() or not self._licensed_for("generate the SWC ARXML"):
+            return
+        issues = validator.validate(self.prj)
+        errors = [i for i in issues if i[0] == validator.ERROR]
+        if errors:
+            self.run_validate()
+            if not messagebox.askyesno(
+                    "Validation errors",
+                    "%d error(s) found - see the Check tab.\n\nGenerate the SWC anyway?"
+                    % len(errors)):
+                return
+        path = filedialog.asksaveasfilename(
+            title="Generate SWC ARXML", defaultextension=".arxml",
+            initialdir=os.path.dirname(self._last_generated or self.path or "") or None,
+            initialfile=swc_gen.default_file_name(self.prj),
+            filetypes=[("ARXML", "*.arxml")])
+        if not path:
+            return
+        try:
+            swc_gen.write(self.prj, path, self.prj.swc_template)
+        except licensing.LicenseError as exc:
+            messagebox.showwarning("Licence required", str(exc))
+            self.refresh_license()
+            return
+        except Exception:  # noqa: BLE001
+            messagebox.showerror("SWC generation failed", traceback.format_exc())
+            return
+        ports = view_model.build_swc(self.prj)["ports"]
+        sent = sum(1 for p in ports if p["provided"])
+        self._set_status("SWC written: %d sender + %d receiver port(s) -> %s"
+                         % (sent, len(ports) - sent, path), "ok")
+        messagebox.showinfo(
+            "Done",
+            "SWC written to:\n%s\n\n%d sender port(s), %d receiver port(s).\n\n"
+            "Import the SOME/IP ARXML first - every port here refers to a port "
+            "interface declared in it." % (path, sent, len(ports) - sent))
 
     def gen_instance_memory(self) -> None:
         """Run gen_per_instance_memory.py on one or more ARXML files.
