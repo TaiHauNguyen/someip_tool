@@ -54,6 +54,7 @@ def validate(prj: Project) -> List[Tuple[str, str, str]]:
 
     out.extend(_validate_shared_type_names(prj))
     out.extend(_validate_enum_constants(prj))
+    out.extend(_validate_emitted_layout(prj))
 
     for s in prj.services:
         out.extend(_validate_service(prj, s))
@@ -93,6 +94,28 @@ def _validate_shared_type_names(prj: Project) -> List[Tuple[str, str, str]]:
                             "services share one /DataTypes package, so the generated "
                             "file can only carry one of the two."
                             % (obj.name, first[0])))
+    return out
+
+
+def _validate_emitted_layout(prj: Project) -> List[Tuple[str, str, str]]:
+    """The struct that reaches the ARXML has to be as long as the model says.
+
+    Bit fields are packed into wider members on the way out, so the length is
+    computed twice by two different pieces of code; when they disagree the data
+    type no longer matches the DLC of the CAN frame it came from, which the
+    generated file gives no hint of.
+    """
+    out: List[Tuple[str, str, str]] = []
+    try:
+        import view_model
+        problems = view_model.layout_problems(prj)
+    except Exception as exc:                       # noqa: BLE001 - never block the rest
+        return [(WARN, "Project", "Could not check the generated layout: %s" % exc)]
+    for name, emitted, wanted in problems:
+        out.append((ERROR, name,
+                    "The generated data type is %d byte(s) but the members add up to "
+                    "%d - the packing of the bit fields is wrong, and the type no "
+                    "longer matches the frame it came from." % (emitted, wanted)))
     return out
 
 

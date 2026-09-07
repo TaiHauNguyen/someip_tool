@@ -40,6 +40,56 @@ def build_swc(prj: Project) -> Dict[str, Any]:
     return Builder(prj, n, SocketPlan(prj, n)).build_swc()
 
 
+def layout_problems(prj: Project) -> List[tuple]:
+    """[(struct name, emitted bytes, model bytes)] where the two disagree.
+
+    The struct that reaches the ARXML is not the list of rows in the workbook -
+    bit fields are packed into wider members - so its size is computed twice by
+    two different pieces of code.  They have drifted apart before (a 14 bit
+    signal spanning two bytes used to cost one byte too many), and the symptom
+    was a data type quietly out of step with the DLC.  Checking it here means
+    validate.py can say so before anything is generated.
+    """
+    n = Names(prj)
+    b = Builder(prj, n, SocketPlan(prj, n))
+    by_path = {t["path"]: t for t in b._impl_types()}
+    out: List[tuple] = []
+    for t in by_path.values():
+        if t["category"] != "STRUCTURE":
+            continue
+        svc = next((s for s in prj.services if s.find_struct(t["name"])), None)
+        if svc is None:
+            continue
+        emitted = _node_bytes(t, by_path)
+        wanted = svc.struct_size(t["name"])
+        if emitted != wanted:
+            out.append((t["name"], emitted, wanted))
+    return out
+
+
+def _node_bytes(node: Dict[str, Any], by_path: Dict[str, Any], depth: int = 0) -> int:
+    """How many bytes one emitted type occupies."""
+    if depth > 16:
+        return 0
+    cat = node.get("category")
+    if cat == "STRUCTURE":
+        return sum(_node_bytes(c, by_path, depth + 1) for c in node.get("children") or [])
+    if cat == "ARRAY":
+        kids = node.get("children") or []
+        if not kids:
+            return 0
+        return (max(1, int(kids[0].get("array_size") or 1))
+                * _node_bytes(kids[0], by_path, depth + 1))
+    if cat == "TYPE_REFERENCE":
+        target = by_path.get(node.get("impl_ref") or "")
+        if target is not None:
+            return _node_bytes(target, by_path, depth + 1)
+        leaf = (node.get("impl_ref") or "").rsplit("/", 1)[-1]
+        return BASE_TYPE_BY_AR_NAME.get(leaf, ("", 8, "", ""))[1] // 8
+    leaf = (node.get("base_ref") or "").rsplit("/", 1)[-1]
+    return BASE_TYPE_BY_AR_NAME.get(leaf, ("", 8, "", ""))[1] // 8
+
+
 class Builder:
     def __init__(self, prj: Project, n: Names, plan: SocketPlan):
         self.prj, self.n, self.plan = prj, n, plan
@@ -58,6 +108,10 @@ class Builder:
         # own TEXTTABLE too would put an enumeration in the workspace that
         # nothing uses.
         self._used_enums: set = set()
+        # base types a synthesized packed member needs.  A run of four 4 bit
+        # fields is one uint16 even though no member of the model is one, so
+        # the BASE-TYPE-REF would otherwise dangle.
+        self._bitfield_base_types: set = set()
 
     # ------------------------------------------------------------------
     def build(self) -> Dict[str, Any]:
@@ -339,52 +393,85 @@ class Builder:
         column "uint8_t : 4" and friends) is packed here into one byte-wide
         VALUE member with one compu scale per named sub-value, instead of one
         member per signal.
+
+        A run is closed at the first *byte boundary*, not after eight bits: a
+        CAN signal may be wider than a byte and still not fill whole ones -
+        UBatt is 14 bits over byte2..byte3, and the two padding bits after it
+        belong to the same two byte unit.  Closing such a run early cost a byte
+        and put the struct out of step with the DLC.
         """
         out: List[Dict[str, Any]] = []
         i, n = 0, len(members)
         byte_index = 0
         while i < n:
             m = members[i]
-            # Only a *sub-byte* field is merged.  No width, or a width that is
-            # a whole number of bytes ("uint8_t : 8", "uint16_t : 16" for a
-            # 16 bit CAN signal), means the member keeps its own name and type.
+            # Only a field that does not fill whole bytes is merged.  No width,
+            # or a width that is a whole number of bytes ("uint8_t : 8", or
+            # "uint16_t : 16" for a 16 bit CAN signal), keeps its own name.
             if not m.bit_size or m.bit_size % 8 == 0:
                 out.append(self._impl_node(s, m.name, m.type, path, seen))
                 byte_index += max(1, m.bit_size // 8 if m.bit_size
                                   else s.struct_size(m.type))
                 i += 1
                 continue
-            run = []
+            run: List[StructMember] = []
             bits = 0
-            while i < n and members[i].bit_size and bits + members[i].bit_size <= 8:
+            while i < n and members[i].bit_size:
                 run.append(members[i])
                 bits += members[i].bit_size
                 i += 1
-            if not run:
-                # wider than a byte and not byte aligned - it cannot live in one
-                # byte's BITFIELD_TEXTTABLE, so it keeps a member of its own
-                out.append(self._impl_node(s, m.name, m.type, path, seen))
-                byte_index += (m.bit_size + 7) // 8
-                i += 1
-                continue
-            out.append(self._bitfield_byte_node(s, struct_name, run, byte_index, path))
-            byte_index += 1
+                if bits % 8 == 0:
+                    break               # the run now ends on a byte boundary
+            nodes = self._bitfield_group_nodes(s, struct_name, run, bits, byte_index, path)
+            out.extend(nodes)
+            byte_index += max(1, (bits + 7) // 8)
         return out
 
-    def _bitfield_byte_node(self, s: Service, struct_name: str,
-                            run: List[StructMember], byte_index: int,
-                            path: str) -> Dict[str, Any]:
-        """One packed byte: a plain uint8 VALUE, plus a synthesized compu
+    def _bitfield_group_nodes(self, s: Service, struct_name: str,
+                              run: List[StructMember], bits: int, byte_index: int,
+                              path: str) -> List[Dict[str, Any]]:
+        """The member(s) one packed run becomes.
+
+        A run of 1, 2, 4 or 8 bytes is one VALUE of the matching width.  No
+        integer is three or five bytes wide, so such a run falls back to one
+        plain byte per byte: the struct still measures what the frame does,
+        which matters more than naming the fields inside it (validate.py says
+        which names were dropped).
+        """
+        nbytes = max(1, (bits + 7) // 8)
+        if nbytes in (1, 2, 4, 8):
+            return [self._bitfield_node(s, struct_name, run, bits, nbytes,
+                                        byte_index, path)]
+        return [self._plain_byte_node(byte_index + k, path) for k in range(nbytes)]
+
+    def _plain_byte_node(self, byte_index: int, path: str) -> Dict[str, Any]:
+        name = "Byte%d" % byte_index
+        self._bitfield_base_types.add("uint8")
+        return {
+            "name": name, "path": path + "/" + name, "category": "VALUE",
+            "type": "uint8_t", "base_ref": "%s/uint8" % self.prj.base_type_package,
+            "compu_ref": None, "constr_ref": None, "impl_ref": None,
+            "array_size": None, "array_semantics": None, "calibration": "READ-ONLY",
+            "children": [],
+        }
+
+    def _bitfield_node(self, s: Service, struct_name: str, run: List[StructMember],
+                       bits: int, nbytes: int, byte_index: int,
+                       path: str) -> Dict[str, Any]:
+        """One packed run: a VALUE as wide as the run, plus a synthesized compu
         method that gives each named sub-field its own masked compu scale.
 
-        A sub-field with no enum (padding, or a raw numeric sub-range with no
-        named values) contributes its width to the byte but gets no scale -
-        BITFIELD_TEXTTABLE can only name discrete values, not a range.
+        A sub-field with no enum (padding, or a raw numeric range with no named
+        values) contributes its width but gets no scale - BITFIELD_TEXTTABLE
+        can only name discrete values.
         """
-        byte_name = "Byte%d" % byte_index
+        byte_name = ("Byte%d" % byte_index if nbytes == 1
+                     else "Bytes%d_%d" % (byte_index, byte_index + nbytes - 1))
+        ar_type = "uint%d" % (nbytes * 8)
+        self._bitfield_base_types.add(ar_type)
         cm_name = "%s_%s" % (struct_name, byte_name)
         scales: List[Dict[str, Any]] = []
-        pos = 8
+        pos = bits                      # the run is filled MSB first
         for mm in run:
             pos -= mm.bit_size
             en = s.find_enum(mm.type)
@@ -400,7 +487,8 @@ class Builder:
                 })
         node: Dict[str, Any] = {
             "name": byte_name, "path": path + "/" + byte_name, "category": "VALUE",
-            "type": "uint8_t", "base_ref": "%s/uint8" % self.prj.base_type_package,
+            "type": ar_type + "_t",
+            "base_ref": "%s/%s" % (self.prj.base_type_package, ar_type),
             "compu_ref": None, "constr_ref": None, "impl_ref": None,
             "array_size": None, "array_semantics": None, "calibration": "READ-ONLY",
             "children": [],
@@ -415,7 +503,7 @@ class Builder:
             })
             self._bitfield_constrs.append({
                 "name": dc_name, "path": self.n.constr_path(dc_name),
-                "lower": 0, "upper": 255,
+                "lower": 0, "upper": (1 << (nbytes * 8)) - 1,
             })
             node["compu_ref"] = self.n.compu_path(cm_name)
             node["constr_ref"] = self.n.constr_path(dc_name)
@@ -535,6 +623,8 @@ class Builder:
                 b = base_type_name(ar.element_type)
                 if b:
                     used.add(b)
+        # _impl_types() has run by now and recorded what the packed members use
+        used.update(self._bitfield_base_types)
         return sorted(used)
 
     def _base_types(self) -> List[Dict[str, Any]]:

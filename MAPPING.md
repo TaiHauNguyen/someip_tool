@@ -145,7 +145,7 @@ Members are emitted as `IMPLEMENTATION-DATA-TYPE-ELEMENT`:
 Type name translation: `float → float32`, `double → float64`, `uint8_t → uint8`,
 `uint32_t → uint32`, `int8_t → sint8`, `boolean → boolean`.
 
-#### Bit fields → one byte-wide member per byte
+#### Bit fields → one member per packed run
 
 A Type cell written as `<type> : <n>` - `uint8_t : 4`, `ACUCrashStsType : 2` -
 declares a field `n` bits wide.  This is what `dbc_bitfield_excel.py` writes
@@ -165,8 +165,8 @@ The one bit-level construct DaVinci Developer really supports is a compu method
 of category `BITFIELD_TEXTTABLE` on a **whole byte** - exactly what
 `/Predefined_DEV/CompuMethods/Dem_UdsStatusByteType` in this project's own
 `DataTypes.arxml` does.  So a run of consecutive bit fields is packed here into
-**one `uint8` member named `Byte<n>`**, and each named sub-value becomes one
-compu scale carrying the field's `MASK`:
+**one member as wide as the run**, and each named sub-value becomes one compu
+scale carrying the field's `MASK`:
 
 ```xml
 <IMPLEMENTATION-DATA-TYPE-ELEMENT>
@@ -213,6 +213,17 @@ into position.  The RTE turns each scale into a `#define`, so application code
 masks and shifts to read a signal.  Bits are filled MSB first, matching the
 Motorola order the DBC importer writes.
 
+**Where a run ends.**  At the first *byte boundary*, not after eight bits.  A
+CAN signal may be wider than a byte and still not fill whole ones: `UBatt` is
+14 bits over byte2..byte3, and the two padding bits behind it belong to the
+same two byte unit.  That run becomes one `uint16` named `Bytes2_3`, with the
+masks measured across all 16 bits.  A one byte run keeps the name `Byte<n>`; a
+wider one is `Bytes<first>_<last>`.
+
+No integer is three or five bytes wide, so a run of that size falls back to one
+plain `uint8` per byte: the struct still measures what the frame does, which
+matters more than naming the fields inside it.
+
 **Which members stay whole.** A member with no width, or one exactly `: 8` wide,
 keeps its own name and type - only sub-byte fields are merged.  So
 `ACUCrashInfoStruct` becomes `CRC_ACU_CRASH_INFO`, `Byte1` … `Byte4`,
@@ -225,7 +236,9 @@ bits) are 8 bytes, which is what `PayloadLengthBytes` must say.
 
 **Checks** (`validate.py`): a width wider than its storage type, a bit field
 over a float or over a struct or array, and a run whose bits do not add up to
-whole bytes are reported.  A sub-byte field with no enum gets an INFO: it has no
+whole bytes are reported.  The length of the *generated* struct is checked
+against the model too - it is computed twice by two different pieces of code,
+and when those drift the data type silently stops matching the DLC.  A sub-byte field with no enum gets an INFO: it has no
 named values, so it gets no compu scale and its name does not reach the ARXML -
 only its bits are held.
 
