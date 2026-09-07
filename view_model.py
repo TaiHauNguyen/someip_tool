@@ -257,9 +257,10 @@ class Builder:
     def _swc_ports(self, events, types_by_path, swc_path) -> List[Dict[str, Any]]:
         """One port per event: the provider sends, so it gets a P-Port.
 
-        A receiver has to start from a defined value, so an R-Port carries an
-        init value shaped like the data type it receives.  A sender does not:
-        the application writes before it sends.
+        Both directions carry an init value shaped like the data type behind
+        the interface - the receiver so it has something defined to read before
+        the first message arrives, the sender so the buffer the RTE hands the
+        application is defined before the first write.
         """
         out: List[Dict[str, Any]] = []
         for ev in events:
@@ -267,11 +268,9 @@ class Builder:
             prefix = (self.prj.swc_port_prefix_provider if s.is_provider
                       else self.prj.swc_port_prefix_consumer)
             name = prefix + ev["name"]
-            init = None
-            if not s.is_provider:
-                target = types_by_path.get(ev["type_ref"])
-                init = (self._value_spec(target, types_by_path) if target is not None
-                        else {"kind": "numerical", "label": "", "value": 0, "children": []})
+            target = types_by_path.get(ev["type_ref"])
+            init = (self._value_spec(target, types_by_path) if target is not None
+                    else {"kind": "numerical", "label": "", "value": 0, "children": []})
             out.append({
                 "name": name, "path": swc_path + "/" + name,
                 "provided": s.is_provider,

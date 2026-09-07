@@ -60,9 +60,10 @@ Typical flow:
 5. **Generate ARXML** – import the result in DaVinci Classic.
 6. **Generate SWC** (optional) – writes an `APPLICATION-SW-COMPONENT-TYPE` to a
    file of its own, one port per event: a provider service sends, so it gets a
-   P-Port; a consumer receives, so it gets an R-Port with an `INIT-VALUE`
-   shaped like the data type behind its interface.  The SWC declares no type
-   and no interface - every port points into the ARXML from step 5, so
+   P-Port; a consumer receives, so it gets an R-Port.  Both carry an
+   `INIT-VALUE` shaped like the data type behind their interface.  The SWC
+   declares no type and no interface - every port points into the ARXML from
+   step 5, so
    **import that file first and the SWC second**.  The SOME/IP output is not
    touched by this button.
 7. **Per-Instance Memory** (optional) – pick the ARXML just generated (or any

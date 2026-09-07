@@ -370,9 +370,13 @@ first**.  Nothing in section 2-6 changes when this button is pressed;
 Port name: `SoIp_P_<event>` / `SoIp_R_<event>`, beside the interface names
 `SoIp_I_P_<event>` / `SoIp_I_C_<event>` the SOME/IP file uses.
 
-A receiver has to start from a defined value, so an R-Port carries a
-`NONQUEUED-RECEIVER-COM-SPEC` with an `INIT-VALUE`.  A sender does not: the
-application writes before it sends.
+Both directions carry an `INIT-VALUE`: an R-Port in a
+`NONQUEUED-RECEIVER-COM-SPEC`, so there is something defined to read before the
+first message arrives, and a P-Port in a `NONQUEUED-SENDER-COM-SPEC`, so the
+buffer the RTE hands the application is defined before the first write.  The
+receiver spec carries the extra reception attributes (`ALIVE-TIMEOUT`,
+`FILTER`, `HANDLE-NEVER-RECEIVED`); the sender spec is just the data element
+and the value.
 
 **The init value is shaped like the emitted type, not like the workbook.**  It
 is built by walking the `IMPLEMENTATION-DATA-TYPE` tree the SOME/IP file really

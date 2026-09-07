@@ -45,6 +45,14 @@
             <P-PORT-PROTOTYPE t-foreach="ports as port" t-if="port.provided"
                               UUID="${uuid(port.path)}">
               <SHORT-NAME>${port.name}</SHORT-NAME>
+              <PROVIDED-COM-SPECS>
+                <NONQUEUED-SENDER-COM-SPEC>
+                  <DATA-ELEMENT-REF DEST="VARIABLE-DATA-PROTOTYPE">${port.data_element_ref}</DATA-ELEMENT-REF>
+                  <INIT-VALUE>
+                    <ELEM t-with="port.init as v" t-call="valueSpec"/>
+                  </INIT-VALUE>
+                </NONQUEUED-SENDER-COM-SPEC>
+              </PROVIDED-COM-SPECS>
               <PROVIDED-INTERFACE-TREF DEST="SENDER-RECEIVER-INTERFACE">${port.iface_ref}</PROVIDED-INTERFACE-TREF>
             </P-PORT-PROTOTYPE>
 
