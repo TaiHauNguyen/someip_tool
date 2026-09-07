@@ -74,6 +74,16 @@ def layout_problems(prj: Project) -> List[tuple]:
     return out
 
 
+def _unique(items) -> List[Any]:
+    """First-seen order, duplicates dropped."""
+    out, seen = [], set()
+    for it in items:
+        if it and it not in seen:
+            seen.add(it)
+            out.append(it)
+    return out
+
+
 def _strip_suffix(name: str, suffix: str) -> str:
     return name[:-len(suffix)] if name.endswith(suffix) and len(name) > len(suffix) else name
 
@@ -250,19 +260,64 @@ class Builder:
     # SWC (its own file)
     # ------------------------------------------------------------------
     def build_swc(self) -> Dict[str, Any]:
+        prj = self.prj
         events = self._events()
         types_by_path = {t["path"]: t for t in self._impl_types()}
-        name = self.prj.swc_name or (self.prj.ecu_name + "_SoIpSwc")
-        package = self.prj.swc_package or "ComponentTypes"
+        name = prj.swc_name or (prj.ecu_name + "_SoIpSwc")
+        package = prj.swc_package or "ComponentTypes"
         path = "/%s/%s" % (package, name)
+        behavior = name + "_InternalBehavior"
+        behavior_path = path + "/" + behavior
+        ports = self._swc_ports(events, types_by_path, path)
+        triggers, runnables = self._swc_triggers(ports, name, path, behavior_path)
         return {
-            "project": self.prj,
+            "project": prj,
             "uuid": uuid_for,
             "package": package,
             "package_path": "/" + package,
             "swc": {"name": name, "path": path},
-            "ports": self._swc_ports(events, types_by_path, path),
+            "behavior": {"name": behavior, "path": behavior_path},
+            "implementation": {"name": name + "_Implementation",
+                               "path": "/%s/%s_Implementation" % (package, name)},
+            "trigger": {"interface": prj.gateway_trigger_interface,
+                        "element_ref": "%s/%s" % (prj.gateway_trigger_interface,
+                                                  prj.gateway_trigger_element)},
+            "ports": ports,
+            "trigger_ports": triggers,
+            "runnables": runnables,
         }
+
+    def _swc_triggers(self, ports, swc_name: str, swc_path: str,
+                      behavior_path: str) -> tuple:
+        """The R-Ports the gateway connects to, and the runnables they start.
+
+        One of each per CAN message, mirroring the gateway's P-Ports so the two
+        components pair up.  Receiving the trigger starts a runnable that sends
+        that message on every SOME/IP port carrying it - the same struct may go
+        to several zones, and one trigger feeds all of them.
+        """
+        prj = self.prj
+        triggers: List[Dict[str, Any]] = []
+        runnables: List[Dict[str, Any]] = []
+        for serializer in _unique(p["serializer"] for p in ports if p["provided"]):
+            base = _strip_suffix(serializer, "Struct")
+            rport = prj.swc_trigger_port_prefix + base
+            runnable = "%s_%s%s" % (swc_name, base, prj.swc_runnable_suffix)
+            runnable_path = behavior_path + "/" + runnable
+            event = "DRT_%s_%s_%s" % (runnable, rport, prj.gateway_trigger_element)
+            triggers.append({"name": rport, "path": swc_path + "/" + rport})
+            runnables.append({
+                "name": runnable, "path": runnable_path,
+                "event": {"name": event, "path": behavior_path + "/" + event},
+                "rport_ref": swc_path + "/" + rport,
+                "sends": [{
+                    "name": "SEND_%s_%s" % (p["name"], p["element"]),
+                    "path": "%s/SEND_%s_%s" % (runnable_path, p["name"], p["element"]),
+                    "port_ref": p["path"],
+                    "target_ref": p["data_element_ref"],
+                } for p in ports if p["provided"] and p["serializer"] == serializer],
+            })
+        return triggers, runnables
 
     def build_gateway_swc(self) -> Dict[str, Any]:
         """The gateway SWC: one trigger port per CAN message it forwards.
@@ -284,14 +339,10 @@ class Builder:
         element_ref = "%s/%s" % (prj.gateway_trigger_interface, prj.gateway_trigger_element)
 
         ports: List[Dict[str, Any]] = []
-        seen: set = set()
-        for ev in self._events():
-            if not ev["service"].is_provider:
-                continue                        # the gateway sends, it does not receive
-            serializer = ev["event"].serializer
-            if not serializer or serializer in seen:
-                continue
-            seen.add(serializer)
+        provider_serializers = _unique(
+            ev["event"].serializer for ev in self._events()
+            if ev["service"].is_provider)     # the gateway sends, it does not receive
+        for serializer in provider_serializers:
             port = prj.gateway_port_prefix + _strip_suffix(serializer, "Struct")
             ports.append({
                 "name": port, "path": path + "/" + port,
@@ -338,6 +389,8 @@ class Builder:
                 "name": name, "path": swc_path + "/" + name,
                 "provided": s.is_provider,
                 "iface_ref": ev["port_interface_path"],
+                "element": ev["name"],
+                "serializer": ev["event"].serializer,
                 "data_element_ref": "%s/%s" % (ev["port_interface_path"], ev["name"]),
                 "init": init,
             })

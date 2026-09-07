@@ -431,6 +431,11 @@ class Project:
     # a provider service sends, so its port is a P-Port; a consumer receives
     swc_port_prefix_provider: str = "SoIp_P_"
     swc_port_prefix_consumer: str = "SoIp_R_"
+    # the other half of the gateway's trigger: one R-Port per CAN message,
+    # matching a P-Port of the gateway one to one so the two can be connected.
+    # Receiving on it starts the runnable that sends that message on SOME/IP.
+    swc_trigger_port_prefix: str = "Can2SoIp_I_R_"
+    swc_runnable_suffix: str = "_Sender"
 
     # -- the gateway SWC, written beside the one above ---------------------
     # One P-Port per serializer rather than per event: the port says "this CAN

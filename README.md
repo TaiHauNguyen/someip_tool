@@ -69,8 +69,11 @@ Typical flow:
 
    It also writes a second component beside it, `Vfx_CanToSomeIpGateway`, with
    one trigger P-Port per CAN message forwarded and a periodic runnable that
-   sends on all of them.  Those ports refer to a trigger port interface the
-   tool does **not** generate - it has to be in the workspace already.
+   sends on all of them.  The first SWC carries the matching R-Ports and, for
+   each, a runnable started by a `DATA-RECEIVED-EVENT` that sends that message
+   on every SOME/IP port carrying it - so the two components connect port for
+   port.  Those trigger ports refer to a port interface the tool does **not**
+   generate: it has to be in the workspace already.
 7. **Per-Instance Memory** (optional) – pick the ARXML just generated (or any
    ARXML with `IMPLEMENTATION-DATA-TYPE`s) and this writes the matching
    `<AR-TYPED-PER-INSTANCE-MEMORYS>` fragment (one `VARIABLE-DATA-PROTOTYPE`

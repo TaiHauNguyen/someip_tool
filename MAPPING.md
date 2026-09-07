@@ -392,6 +392,26 @@ carries, so a struct whose bit fields were packed into `Byte<n>` members
 Each field carries the sub element's name as `SHORT-LABEL`; array elements are
 indistinguishable, so they carry none.
 
+### Connecting the two: trigger ports and runnables
+
+The application SWC carries the other half of the gateway's trigger, so the two
+components can be wired together in DaVinci:
+
+| | |
+|---|---|
+| `Can2SoIp_I_R_<base>` | one R-Port per CAN message, mirroring a gateway P-Port one to one and pointing at the same trigger interface |
+| `<swc>_<base>_Sender` | the runnable that R-Port starts |
+| `DRT_<runnable>_<rport>_<element>` | the `DATA-RECEIVED-EVENT` that starts it, with `CONTEXT-R-PORT-REF` + `TARGET-DATA-ELEMENT-REF` |
+
+The runnable's `DATA-SEND-POINTS` hold **one `VARIABLE-ACCESS` per SOME/IP
+P-Port carrying that struct**, not one in total: the same CAN message goes to
+several zones as several events, and one trigger sends all of them.  So the ACM
+workbook gives two runnables of three send points each, one per zone.
+
+The behavior is `<swc>_InternalBehavior` and gets a `SWC-IMPLEMENTATION` of its
+own, the same way the gateway does; both are omitted when a project has no
+provider event to forward.
+
 ### The gateway SWC
 
 The same button writes a second component beside the first,
