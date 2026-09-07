@@ -432,6 +432,20 @@ class Project:
     swc_port_prefix_provider: str = "SoIp_P_"
     swc_port_prefix_consumer: str = "SoIp_R_"
 
+    # -- the gateway SWC, written beside the one above ---------------------
+    # One P-Port per serializer rather than per event: the port says "this CAN
+    # message arrived", and the several events that carry the same struct to
+    # different zones share that one trigger.  Every port points at the same
+    # trigger interface, which the tool does not generate - it has to exist in
+    # the workspace already.
+    gateway_swc_name: str = "Vfx_CanToSomeIpGateway"
+    gateway_template: str = "swc_gateway.arxml.tpl"
+    gateway_port_prefix: str = "Can2SoIp_I_S_"
+    gateway_trigger_interface: str = "/PortInterfaces/Can2SoIp_I_SR_Trigger"
+    gateway_trigger_element: str = "Element"
+    gateway_runnable: str = "Runnable"
+    gateway_period: float = 0.01
+
     services: List[Service] = field(default_factory=list)
 
     # -- helpers ----------------------------------------------------------

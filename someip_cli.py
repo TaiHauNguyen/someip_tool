@@ -152,6 +152,10 @@ def main(argv=None) -> int:
             # its own file: the ARXML above is already complete without it
             swc_gen.write(prj, args.swc, prj.swc_template)
             print("Written", args.swc, "(import it after the ARXML above)")
+            gw = swc_gen.gateway_path_beside(args.swc, prj)
+            swc_gen.write_gateway(prj, gw, prj.gateway_template)
+            print("Written", gw, "(needs %s in the workspace)"
+                  % prj.gateway_trigger_interface)
         if args.json:
             prj.to_json(args.json)
             print("Written", args.json)

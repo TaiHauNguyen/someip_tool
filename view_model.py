@@ -41,6 +41,12 @@ def build_swc(prj: Project) -> Dict[str, Any]:
     return Builder(prj, n, SocketPlan(prj, n)).build_swc()
 
 
+def build_gateway_swc(prj: Project) -> Dict[str, Any]:
+    """Context for the gateway SWC, generated beside the other one."""
+    n = Names(prj)
+    return Builder(prj, n, SocketPlan(prj, n)).build_gateway_swc()
+
+
 def layout_problems(prj: Project) -> List[tuple]:
     """[(struct name, emitted bytes, model bytes)] where the two disagree.
 
@@ -66,6 +72,10 @@ def layout_problems(prj: Project) -> List[tuple]:
         if emitted != wanted:
             out.append((t["name"], emitted, wanted))
     return out
+
+
+def _strip_suffix(name: str, suffix: str) -> str:
+    return name[:-len(suffix)] if name.endswith(suffix) and len(name) > len(suffix) else name
 
 
 def _node_bytes(node: Dict[str, Any], by_path: Dict[str, Any], depth: int = 0) -> int:
@@ -252,6 +262,59 @@ class Builder:
             "package_path": "/" + package,
             "swc": {"name": name, "path": path},
             "ports": self._swc_ports(events, types_by_path, path),
+        }
+
+    def build_gateway_swc(self) -> Dict[str, Any]:
+        """The gateway SWC: one trigger port per CAN message it forwards.
+
+        The events that carry the same serializer are the same CAN message on
+        its way to several zones, so they share one port - the port says the
+        message arrived, and the SOME/IP side decides who hears about it.  All
+        of them point at one trigger interface, which is not generated here:
+        it holds a single primitive and belongs to the workspace, not to any
+        one database.
+        """
+        prj = self.prj
+        name = prj.gateway_swc_name
+        package = prj.swc_package or "ComponentTypes"
+        path = "/%s/%s" % (package, name)
+        behavior = name + "_InternalBehavior"
+        behavior_path = path + "/" + behavior
+        runnable = prj.gateway_runnable or "Runnable"
+        element_ref = "%s/%s" % (prj.gateway_trigger_interface, prj.gateway_trigger_element)
+
+        ports: List[Dict[str, Any]] = []
+        seen: set = set()
+        for ev in self._events():
+            if not ev["service"].is_provider:
+                continue                        # the gateway sends, it does not receive
+            serializer = ev["event"].serializer
+            if not serializer or serializer in seen:
+                continue
+            seen.add(serializer)
+            port = prj.gateway_port_prefix + _strip_suffix(serializer, "Struct")
+            ports.append({
+                "name": port, "path": path + "/" + port,
+                "access": "SEND_%s_%s" % (port, prj.gateway_trigger_element),
+                "access_path": "%s/%s/SEND_%s_%s" % (behavior_path, runnable, port,
+                                                     prj.gateway_trigger_element),
+            })
+        return {
+            "project": prj,
+            "uuid": uuid_for,
+            "package": package,
+            "package_path": "/" + package,
+            "swc": {"name": name, "path": path},
+            "behavior": {"name": behavior, "path": behavior_path},
+            "runnable": {"name": runnable, "path": behavior_path + "/" + runnable},
+            "timing": {"name": "TMT_" + runnable,
+                       "path": behavior_path + "/TMT_" + runnable,
+                       "period": prj.gateway_period},
+            "implementation": {"name": name + "_Implementation",
+                               "path": "/%s/%s_Implementation" % (package, name)},
+            "trigger": {"interface": prj.gateway_trigger_interface,
+                        "element_ref": element_ref},
+            "ports": ports,
         }
 
     def _swc_ports(self, events, types_by_path, swc_path) -> List[Dict[str, Any]]:

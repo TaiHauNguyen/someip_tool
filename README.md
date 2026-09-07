@@ -66,6 +66,11 @@ Typical flow:
    step 5, so
    **import that file first and the SWC second**.  The SOME/IP output is not
    touched by this button.
+
+   It also writes a second component beside it, `Vfx_CanToSomeIpGateway`, with
+   one trigger P-Port per CAN message forwarded and a periodic runnable that
+   sends on all of them.  Those ports refer to a trigger port interface the
+   tool does **not** generate - it has to be in the workspace already.
 7. **Per-Instance Memory** (optional) – pick the ARXML just generated (or any
    ARXML with `IMPLEMENTATION-DATA-TYPE`s) and this writes the matching
    `<AR-TYPED-PER-INSTANCE-MEMORYS>` fragment (one `VARIABLE-DATA-PROTOTYPE`
@@ -100,9 +105,9 @@ Handles: any number of services and workbooks, provider and consumer roles,
 several events per group, several event groups per service **including groups
 that go to different ECUs**, nested structs, enums, CAN bit field members
 (`uint8_t : 4` in the Type column, as `dbc_bitfield_excel.py` writes them -
-packed into one `Byte<n>` member per byte with a `BITFIELD_TEXTTABLE` compu
-method, which is the only bit level construct DaVinci Developer supports; see
-section 5 of `MAPPING.md`), and both DataStructures sheet layouts.
+packed into whole byte members - one `Byte<n>` with a `BITFIELD_TEXTTABLE`
+compu method, or a byte array where a signal spans bytes - which is the only
+bit level construct DaVinci Developer supports; see section 5 of `MAPPING.md`), and both DataStructures sheet layouts.
 
 Not handled yet - the validator reports an error rather than writing a wrong
 file: **TCP transport** (only `UDP-TP` sockets are generated) and SOME/IP
@@ -121,6 +126,7 @@ event socket.
 | `template_engine.py` | the `t-foreach` / `t-if` / `${}` XML templating |
 | `templates/someip.arxml.tpl` | **the ARXML structure** - edit this to change the output |
 | `templates/swc.arxml.tpl` | the SWC structure, ports and init values |
+| `templates/swc_gateway.arxml.tpl` | the gateway SWC: trigger ports, runnable, timing |
 | `arxml_gen.py` | glues view model + template together |
 | `swc_gen.py` | the SWC file, generated separately from the same model |
 | `resolve.py` | nearest-declaration and carry-over rules |

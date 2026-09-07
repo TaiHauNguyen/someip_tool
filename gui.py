@@ -1327,8 +1327,11 @@ class App(tk.Tk):
             filetypes=[("ARXML", "*.arxml")])
         if not path:
             return
+        # one button, two files: the gateway goes beside the one just named
+        gw_path = swc_gen.gateway_path_beside(path, self.prj)
         try:
             swc_gen.write(self.prj, path, self.prj.swc_template)
+            swc_gen.write_gateway(self.prj, gw_path, self.prj.gateway_template)
         except licensing.LicenseError as exc:
             messagebox.showwarning("Licence required", str(exc))
             self.refresh_license()
@@ -1338,13 +1341,20 @@ class App(tk.Tk):
             return
         ports = view_model.build_swc(self.prj)["ports"]
         sent = sum(1 for p in ports if p["provided"])
-        self._set_status("SWC written: %d sender + %d receiver port(s) -> %s"
-                         % (sent, len(ports) - sent, path), "ok")
+        gw = view_model.build_gateway_swc(self.prj)
+        self._set_status(
+            "SWC written: %d sender + %d receiver port(s); gateway: %d trigger "
+            "port(s) -> %s" % (sent, len(ports) - sent, len(gw["ports"]), path), "ok")
         messagebox.showinfo(
             "Done",
-            "SWC written to:\n%s\n\n%d sender port(s), %d receiver port(s).\n\n"
-            "Import the SOME/IP ARXML first - every port here refers to a port "
-            "interface declared in it." % (path, sent, len(ports) - sent))
+            "Two files written:\n\n%s\n    %d sender port(s), %d receiver port(s)"
+            "\n\n%s\n    %d trigger port(s)\n\n"
+            "Import the SOME/IP ARXML first - every port of the first file refers "
+            "to a port interface declared in it.\n\nThe gateway's ports all refer "
+            "to %s, which this tool does not generate: it has to be in the "
+            "workspace already."
+            % (path, sent, len(ports) - sent, gw_path, len(gw["ports"]),
+               self.prj.gateway_trigger_interface))
 
     def gen_instance_memory(self) -> None:
         """Run gen_per_instance_memory.py on one or more ARXML files.

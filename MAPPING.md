@@ -392,6 +392,33 @@ carries, so a struct whose bit fields were packed into `Byte<n>` members
 Each field carries the sub element's name as `SHORT-LABEL`; array elements are
 indistinguishable, so they carry none.
 
+### The gateway SWC
+
+The same button writes a second component beside the first,
+`Vfx_CanToSomeIpGateway`, named after the direction it works in.  It carries
+**one P-Port per serializer, not per event**: several events carrying the same
+struct are one CAN message on its way to several zones, so they share a port.
+`ACUCrashInfoStruct` gives `Can2SoIp_I_S_ACUCrashInfo` - the prefix plus the
+struct name with `Struct` removed.  Only provider services get a port; a
+consumer is not something this gateway forwards.
+
+Every port points at the **same trigger interface**, holding one primitive:
+the port says the message arrived, and the SOME/IP side decides who hears
+about it.  That interface (`/PortInterfaces/Can2SoIp_I_SR_Trigger` by default)
+is **not generated** - it belongs to the workspace, not to any one database, so
+it has to be there before the file is imported.
+
+| Element | Content |
+|---|---|
+| `P-PORT-PROTOTYPE` | `NONQUEUED-SENDER-COM-SPEC` with `INIT-VALUE` 0, and `DV:ImportModePreset` = `Keep` so a re-import does not overwrite what was tuned by hand |
+| `SWC-INTERNAL-BEHAVIOR` | one `TIMING-EVENT` (`gateway_period`, 0.01 s) starting one `RUNNABLE-ENTITY` |
+| `RUNNABLE-ENTITY` | one `VARIABLE-ACCESS` in `DATA-SEND-POINTS` per port, `SEND_<port>_<element>` |
+| `SWC-IMPLEMENTATION` | `<swc>_Implementation`, pointing back at the behavior |
+
+Names, prefix, trigger interface, runnable and period are all `Project` fields
+(`gateway_*`), so a project that calls these something else does not need a
+different template.
+
 ## 7. Where the rules live
 
 Nothing about this project is hard coded.  The pipeline is three separable pieces:
