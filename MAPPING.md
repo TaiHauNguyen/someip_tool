@@ -392,6 +392,20 @@ carries, so a struct whose bit fields were packed into `Byte<n>` members
 Each field carries the sub element's name as `SHORT-LABEL`; array elements are
 indistinguishable, so they carry none.
 
+### Per-instance memory
+
+The behavior opens with `AR-TYPED-PER-INSTANCE-MEMORYS`, one
+`VARIABLE-DATA-PROTOTYPE` per `STRUCTURE` data type - the same thing
+`gen_per_instance_memory.py` writes as a fragment to paste by hand, produced
+here from the types the SOME/IP file really declares so the SWC arrives
+complete.  The name is the struct without `Struct`
+(`ACUCrashInfoStruct` -> `ACUCrashInfo`) and `TYPE-TREF` points back at
+`/DataTypes/<struct>`.  The schema puts this block **before** `EVENTS`.
+
+The byte arrays behind a packed member (`array_u8_3`) get none: they are a
+detail of a struct, not a buffer of their own.  The standalone button still
+works on any ARXML, for a file this tool did not write.
+
 ### Connecting the two: trigger ports and runnables
 
 The application SWC carries the other half of the gateway's trigger, so the two

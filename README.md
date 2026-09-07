@@ -74,6 +74,10 @@ Typical flow:
    on every SOME/IP port carrying it - so the two components connect port for
    port.  Those trigger ports refer to a port interface the tool does **not**
    generate: it has to be in the workspace already.
+
+   The SWC also carries the per-instance memory - one buffer per struct - so
+   the fragment from step 7 no longer has to be pasted in by hand.  Names,
+   prefixes and the trigger interface are all fields on the **Project** tab.
 7. **Per-Instance Memory** (optional) – pick the ARXML just generated (or any
    ARXML with `IMPLEMENTATION-DATA-TYPE`s) and this writes the matching
    `<AR-TYPED-PER-INSTANCE-MEMORYS>` fragment (one `VARIABLE-DATA-PROTOTYPE`

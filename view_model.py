@@ -268,8 +268,10 @@ class Builder:
         path = "/%s/%s" % (package, name)
         behavior = name + "_InternalBehavior"
         behavior_path = path + "/" + behavior
+        impl_types = list(types_by_path.values())
         ports = self._swc_ports(events, types_by_path, path)
         triggers, runnables = self._swc_triggers(ports, name, path, behavior_path)
+        pims = self._swc_per_instance_memory(impl_types, behavior_path)
         return {
             "project": prj,
             "uuid": uuid_for,
@@ -285,7 +287,29 @@ class Builder:
             "ports": ports,
             "trigger_ports": triggers,
             "runnables": runnables,
+            "per_instance_memory": pims,
         }
+
+    def _swc_per_instance_memory(self, impl_types, behavior_path: str) -> List[Dict[str, Any]]:
+        """One AR-TYPED-PER-INSTANCE-MEMORY per struct the SWC serializes.
+
+        The same thing gen_per_instance_memory.py writes as a fragment to paste
+        by hand, produced here from the types the SOME/IP file really declares,
+        so the SWC arrives complete.  Only STRUCTURE types get one: the byte
+        arrays behind a packed member are a detail of a struct, not a buffer of
+        their own.
+        """
+        out: List[Dict[str, Any]] = []
+        for t in impl_types:
+            if t.get("category") != "STRUCTURE":
+                continue
+            name = _strip_suffix(t["name"], "Struct")
+            out.append({
+                "name": name, "path": behavior_path + "/" + name,
+                "type_ref": t["path"],
+                "calibration": t.get("calibration") or "READ-ONLY",
+            })
+        return out
 
     def _swc_triggers(self, ports, swc_name: str, swc_path: str,
                       behavior_path: str) -> tuple:

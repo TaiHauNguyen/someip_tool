@@ -404,6 +404,20 @@ PROJECT_SPEC = [
     ("Local endpoint tag", "local_endpoint_tag", "str"),
     ("Port iface prefix (provider)", "port_iface_prefix_provider", "str"),
     ("Port iface prefix (consumer)", "port_iface_prefix_consumer", "str"),
+    ("--SWC (Generate SWC)", "", "sep"),
+    ("SWC name (blank = <ECU>_SoIpSwc)", "swc_name", "str"),
+    ("SWC package", "swc_package", "str"),
+    ("Port prefix (provider)", "swc_port_prefix_provider", "str"),
+    ("Port prefix (consumer)", "swc_port_prefix_consumer", "str"),
+    ("Trigger port prefix", "swc_trigger_port_prefix", "str"),
+    ("Runnable suffix", "swc_runnable_suffix", "str"),
+    ("--Gateway SWC", "", "sep"),
+    ("Gateway SWC name", "gateway_swc_name", "str"),
+    ("Gateway port prefix", "gateway_port_prefix", "str"),
+    ("Trigger port interface", "gateway_trigger_interface", "str"),
+    ("Trigger data element", "gateway_trigger_element", "str"),
+    ("Gateway runnable", "gateway_runnable", "str"),
+    ("Gateway period [s]", "gateway_period", "float"),
 ]
 
 SERVICE_SPEC = [

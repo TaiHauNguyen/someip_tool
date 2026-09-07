@@ -110,10 +110,26 @@
 
           <!-- Receiving a trigger starts the runnable that sends that CAN
                message on every SOME/IP port carrying it. -->
-          <INTERNAL-BEHAVIORS t-if="runnables">
+          <INTERNAL-BEHAVIORS t-if="runnables or per_instance_memory">
             <SWC-INTERNAL-BEHAVIOR UUID="${uuid(behavior.path)}">
               <SHORT-NAME>${behavior.name}</SHORT-NAME>
-              <EVENTS>
+              <!-- One buffer per struct the SWC serializes.  The schema puts
+                   these before the events. -->
+              <AR-TYPED-PER-INSTANCE-MEMORYS t-if="per_instance_memory">
+                <VARIABLE-DATA-PROTOTYPE t-foreach="per_instance_memory as pim"
+                                         UUID="${uuid(pim.path)}">
+                  <SHORT-NAME>${pim.name}</SHORT-NAME>
+                  <SW-DATA-DEF-PROPS>
+                    <SW-DATA-DEF-PROPS-VARIANTS>
+                      <SW-DATA-DEF-PROPS-CONDITIONAL>
+                        <SW-CALIBRATION-ACCESS>${pim.calibration}</SW-CALIBRATION-ACCESS>
+                      </SW-DATA-DEF-PROPS-CONDITIONAL>
+                    </SW-DATA-DEF-PROPS-VARIANTS>
+                  </SW-DATA-DEF-PROPS>
+                  <TYPE-TREF DEST="IMPLEMENTATION-DATA-TYPE">${pim.type_ref}</TYPE-TREF>
+                </VARIABLE-DATA-PROTOTYPE>
+              </AR-TYPED-PER-INSTANCE-MEMORYS>
+              <EVENTS t-if="runnables">
                 <DATA-RECEIVED-EVENT t-foreach="runnables as r" UUID="${uuid(r.event.path)}">
                   <SHORT-NAME>${r.event.name}</SHORT-NAME>
                   <START-ON-EVENT-REF DEST="RUNNABLE-ENTITY">${r.path}</START-ON-EVENT-REF>
@@ -123,7 +139,7 @@
                   </DATA-IREF>
                 </DATA-RECEIVED-EVENT>
               </EVENTS>
-              <RUNNABLES>
+              <RUNNABLES t-if="runnables">
                 <RUNNABLE-ENTITY t-foreach="runnables as r" UUID="${uuid(r.path)}">
                   <SHORT-NAME>${r.name}</SHORT-NAME>
                   <DATA-SEND-POINTS>
@@ -143,7 +159,8 @@
             </SWC-INTERNAL-BEHAVIOR>
           </INTERNAL-BEHAVIORS>
         </APPLICATION-SW-COMPONENT-TYPE>
-        <SWC-IMPLEMENTATION t-if="runnables" UUID="${uuid(implementation.path)}">
+        <SWC-IMPLEMENTATION t-if="runnables or per_instance_memory"
+                            UUID="${uuid(implementation.path)}">
           <SHORT-NAME>${implementation.name}</SHORT-NAME>
           <BEHAVIOR-REF DEST="SWC-INTERNAL-BEHAVIOR">${behavior.path}</BEHAVIOR-REF>
         </SWC-IMPLEMENTATION>
