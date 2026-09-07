@@ -216,16 +216,30 @@ Motorola order the DBC importer writes.
 **Where a run ends.**  At the first *byte boundary*, not after eight bits.  A
 CAN signal may be wider than a byte and still not fill whole ones: `UBatt` is
 14 bits over byte2..byte3, and the two padding bits behind it belong to the
-same two byte unit.  That run becomes one `uint16` named `Bytes2_3`, with the
-masks measured across all 16 bits.  A one byte run keeps the name `Byte<n>`; a
-wider one is `Bytes<first>_<last>`.
+same two byte unit.  Closing the run after eight bits cost a byte and put the
+struct out of step with the DLC.
 
-No integer is three or five bytes wide, so a run of that size falls back to one
-plain `uint8` per byte: the struct still measures what the frame does, which
-matters more than naming the fields inside it.
+**A run of one byte** is a `uint8` named `Byte<n>` carrying the
+`BITFIELD_TEXTTABLE` above.  **A wider run is an array of `uint8`**, not a
+`uint16` or `uint32`, for two reasons: the transformer writes a multi byte
+integer least significant byte first (`MOST-SIGNIFICANT-BYTE-LAST`), which
+would reverse the bytes of the Motorola frame they came from; and no integer is
+three or five bytes wide, which is what a 24 or 40 bit signal needs.  The type
+`array_u8_<n>` is emitted just before the struct that refers to it, the way a
+model declared array is.  A run of one member keeps that member's name; a mixed
+run is `Bytes<first>_<last>`:
 
-**Which members stay whole.** A member with no width, or one exactly `: 8` wide,
-keeps its own name and type - only sub-byte fields are merged.  So
+| Members in the run | Emitted |
+|---|---|
+| `Reserved_1 : 2`, `LV_BatteryType : 2`, `ALIVE : 4` | `uint8 Byte1` + its compu method |
+| `UBatt : 14`, `Reserved_2 : 2` | `Bytes2_3` → `array_u8_2` |
+| `FMCU_Req_RandomData : 24` | `FMCU_Req_RandomData` → `array_u8_3` |
+| `FMCU_Req_MAC : 40` | `FMCU_Req_MAC` → `array_u8_5` |
+
+**Which members stay whole.** A member with no width, or one that fills its
+declared type exactly (`uint8_t : 8`, `uint16_t : 16`), keeps its own name and
+type.  `uint32_t : 24` does **not** - it is three bytes on the wire while a
+uint32 is four - so it is packed like any other run.
 `ACUCrashInfoStruct` becomes `CRC_ACU_CRASH_INFO`, `Byte1` … `Byte4`,
 `Reserved_4` … `Reserved_6`: **8 members, 8 bytes, the CAN frame unchanged.**
 

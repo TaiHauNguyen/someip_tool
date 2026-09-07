@@ -13,7 +13,8 @@ from typing import Any, Dict, List, Optional
 from naming import Endpoint, Names, SocketPlan, uuid_for
 from someip_model import (
     BASE_TYPES, SD_HEADER_ID, EnumType, Event, EventGroup, Project, Service,
-    StructMember, StructType, base_type_name, parse_int,
+    StructMember, StructType, base_type_name, base_type_size_bits,
+    default_array_element_name, default_array_name, parse_int,
 )
 
 BASE_TYPE_BY_AR_NAME: Dict[str, tuple] = {}
@@ -112,6 +113,10 @@ class Builder:
         # fields is one uint16 even though no member of the model is one, so
         # the BASE-TYPE-REF would otherwise dangle.
         self._bitfield_base_types: set = set()
+        # array_u8_<n> types a packed run needs; spliced into the output just
+        # before the struct that refers to them, the way model arrays are
+        self._synth_arrays: List[Dict[str, Any]] = []
+        self._synth_array_names: set = set()
 
     # ------------------------------------------------------------------
     def build(self) -> Dict[str, Any]:
@@ -341,10 +346,14 @@ class Builder:
         seen.add(name)
         self._emit_member_arrays(s, st, out, seen, guard | {name})
         path = self.n.impl_type_path(st.name)
+        children = self._struct_children(s, st.name, st.members, path)
+        # a referenced type has to exist before whatever points at it
+        out.extend(self._synth_arrays)
+        self._synth_arrays = []
         out.append({
             "name": st.name, "path": path, "category": "STRUCTURE",
             "calibration": "READ-ONLY", "type_emitter": "RTE",
-            "children": self._struct_children(s, st.name, st.members, path),
+            "children": children,
         })
 
     def _emit_array_type(self, s: Service, name: str, out: List[Dict[str, Any]],
@@ -405,10 +414,11 @@ class Builder:
         byte_index = 0
         while i < n:
             m = members[i]
-            # Only a field that does not fill whole bytes is merged.  No width,
-            # or a width that is a whole number of bytes ("uint8_t : 8", or
-            # "uint16_t : 16" for a 16 bit CAN signal), keeps its own name.
-            if not m.bit_size or m.bit_size % 8 == 0:
+            # A member keeps its own name and type only when it fills that type
+            # exactly: "uint8_t : 8" and "uint16_t : 16" do, "uint32_t : 24"
+            # does not - that one is three bytes on the wire while a uint32 is
+            # four, which used to make the struct longer than the frame.
+            if not m.bit_size or m.bit_size == self._storage_bits(s, m):
                 out.append(self._impl_node(s, m.name, m.type, path, seen))
                 byte_index += max(1, m.bit_size // 8 if m.bit_size
                                   else s.struct_size(m.type))
@@ -427,37 +437,73 @@ class Builder:
             byte_index += max(1, (bits + 7) // 8)
         return out
 
+    @staticmethod
+    def _storage_bits(s: Service, m: StructMember) -> int:
+        """Width of the type a member is declared with, enums resolved."""
+        en = s.find_enum(m.type)
+        return base_type_size_bits(en.base_type if en is not None else m.type)
+
     def _bitfield_group_nodes(self, s: Service, struct_name: str,
                               run: List[StructMember], bits: int, byte_index: int,
                               path: str) -> List[Dict[str, Any]]:
-        """The member(s) one packed run becomes.
+        """The member one packed run becomes.
 
-        A run of 1, 2, 4 or 8 bytes is one VALUE of the matching width.  No
-        integer is three or five bytes wide, so such a run falls back to one
-        plain byte per byte: the struct still measures what the frame does,
-        which matters more than naming the fields inside it (validate.py says
-        which names were dropped).
+        One byte is a uint8 carrying the run's BITFIELD_TEXTTABLE.  Anything
+        wider is an array of uint8, not a uint16/uint32: the transformer writes
+        a multi byte integer least significant byte first
+        (MOST-SIGNIFICANT-BYTE-LAST), which would put the bytes on the wire in
+        the opposite order to the Motorola frame they came from.  An array of
+        bytes keeps them where the frame has them - and there is no three or
+        five byte integer for a 24 or 40 bit signal anyway.
         """
         nbytes = max(1, (bits + 7) // 8)
-        if nbytes in (1, 2, 4, 8):
-            return [self._bitfield_node(s, struct_name, run, bits, nbytes,
-                                        byte_index, path)]
-        return [self._plain_byte_node(byte_index + k, path) for k in range(nbytes)]
+        if nbytes == 1:
+            return [self._bitfield_node(s, struct_name, run, bits, byte_index, path)]
+        # a run of one member keeps that member's name; a mixed run cannot
+        name = (run[0].name if len(run) == 1
+                else "Bytes%d_%d" % (byte_index, byte_index + nbytes - 1))
+        return [self._byte_array_node(name, nbytes, byte_index, path)]
 
-    def _plain_byte_node(self, byte_index: int, path: str) -> Dict[str, Any]:
-        name = "Byte%d" % byte_index
-        self._bitfield_base_types.add("uint8")
+    def _byte_array_node(self, name: str, nbytes: int, byte_index: int,
+                         path: str) -> Dict[str, Any]:
+        """A member pointing at array_u8_<n>, which is emitted alongside.
+
+        Arrays are named types here rather than inlined, because that is what
+        DaVinci wants (see _emit_array_type), so the type is registered for the
+        struct to be preceded by.
+        """
+        arr_name = default_array_name("uint8_t", nbytes)
+        self._need_byte_array(arr_name, nbytes)
         return {
-            "name": name, "path": path + "/" + name, "category": "VALUE",
-            "type": "uint8_t", "base_ref": "%s/uint8" % self.prj.base_type_package,
-            "compu_ref": None, "constr_ref": None, "impl_ref": None,
-            "array_size": None, "array_semantics": None, "calibration": "READ-ONLY",
+            "name": name, "path": path + "/" + name, "category": "TYPE_REFERENCE",
+            "type": arr_name, "base_ref": None, "compu_ref": None, "constr_ref": None,
+            "impl_ref": self.n.impl_type_path(arr_name),
+            "array_size": None, "array_semantics": None, "calibration": None,
             "children": [],
         }
 
+    def _need_byte_array(self, arr_name: str, nbytes: int) -> None:
+        if arr_name in self._synth_array_names:
+            return
+        self._synth_array_names.add(arr_name)
+        self._bitfield_base_types.add("uint8")
+        path = self.n.impl_type_path(arr_name)
+        elem = default_array_element_name("uint8_t")
+        self._synth_arrays.append({
+            "name": arr_name, "path": path, "category": "ARRAY",
+            "calibration": "READ-ONLY", "type_emitter": "RTE",
+            "children": [{
+                "name": elem, "path": path + "/" + elem, "category": "TYPE_REFERENCE",
+                "type": "uint8_t", "base_ref": None, "compu_ref": None,
+                "constr_ref": None,
+                "impl_ref": self.prj.platform_type_package + "/uint8",
+                "array_size": nbytes, "array_semantics": "FIXED-SIZE",
+                "calibration": None, "children": [],
+            }],
+        })
+
     def _bitfield_node(self, s: Service, struct_name: str, run: List[StructMember],
-                       bits: int, nbytes: int, byte_index: int,
-                       path: str) -> Dict[str, Any]:
+                       bits: int, byte_index: int, path: str) -> Dict[str, Any]:
         """One packed run: a VALUE as wide as the run, plus a synthesized compu
         method that gives each named sub-field its own masked compu scale.
 
@@ -465,9 +511,8 @@ class Builder:
         values) contributes its width but gets no scale - BITFIELD_TEXTTABLE
         can only name discrete values.
         """
-        byte_name = ("Byte%d" % byte_index if nbytes == 1
-                     else "Bytes%d_%d" % (byte_index, byte_index + nbytes - 1))
-        ar_type = "uint%d" % (nbytes * 8)
+        byte_name = "Byte%d" % byte_index
+        ar_type = "uint8"
         self._bitfield_base_types.add(ar_type)
         cm_name = "%s_%s" % (struct_name, byte_name)
         scales: List[Dict[str, Any]] = []
@@ -503,7 +548,7 @@ class Builder:
             })
             self._bitfield_constrs.append({
                 "name": dc_name, "path": self.n.constr_path(dc_name),
-                "lower": 0, "upper": (1 << (nbytes * 8)) - 1,
+                "lower": 0, "upper": 255,
             })
             node["compu_ref"] = self.n.compu_path(cm_name)
             node["constr_ref"] = self.n.constr_path(dc_name)
